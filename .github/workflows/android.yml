@@ -1,0 +1,44 @@
+name: Build Android Arm64 APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Make gradlew executable
+        run: |
+          cd android
+          chmod +x gradlew
+
+      - name: Build Android APK
+        run: |
+          cd android
+          ./gradlew assembleDebug
+
+      - name: Upload Arm64 APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: XPing-Pro-Arm64
+          path: android/app/build/outputs/apk/debug/*arm64-v8a-debug.apk
