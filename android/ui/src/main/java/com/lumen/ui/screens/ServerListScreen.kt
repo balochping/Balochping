@@ -1,6 +1,10 @@
 package com.lumen.ui.screens
 
 import android.graphics.BitmapFactory
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,14 +26,19 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,8 +54,9 @@ import java.net.URL
 // Cache for High Quality Rectangular Flags
 private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 
-// === Premium Yellow Gaming Colors ===
+// === Premium Yellow Gaming Colors (X Ping Pro) ===
 private val CyberYellow = Color(0xFFFFD600)
+private val CyberYellowMuted = Color(0x33FFD600)
 private val NeonGreen = Color(0xFF00FF66)
 private val BgDark = Color(0xFF09090E)
 private val CardDark = Color(0xFF15151E)
@@ -115,6 +125,7 @@ fun ServerListScreen(
     onPingNode: (NodeUiModel) -> Unit,
     onCopyNodeLink: (NodeUiModel) -> Unit = {},
     onExportQrCode: (NodeUiModel) -> Unit = {},
+    onExportLumen: (NodeUiModel) -> Unit = {},
     onImportClipboard: () -> Unit,
     onUpdateSubscription: (SubscriptionUiModel, String, String) -> Boolean = { _, _, _ -> false },
     onRefreshSubscription: (SubscriptionUiModel) -> Unit,
@@ -370,28 +381,38 @@ fun ServerListScreen(
                                         Text(text = "DATA USAGE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                                         Text(text = trafficText, color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                                     }
+                                    
                                     Spacer(modifier = Modifier.height(8.dp))
-
                                     val ratio = trafficRatio.coerceIn(0f, 1f)
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(4.dp)
-                                            .clip(RoundedCornerShape(2.dp))
+                                            .height(6.dp)
+                                            .clip(RoundedCornerShape(8.dp))
                                             .background(BgDark)
                                     ) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxWidth(ratio)
-                                                .height(4.dp)
-                                                .clip(RoundedCornerShape(2.dp))
+                                                .height(6.dp)
+                                                .clip(RoundedCornerShape(8.dp))
                                                 .background(CyberYellow)
                                         )
                                     }
                                     if (daysText != null) {
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(text = daysText, fontSize = 11.sp, color = CyberYellow)
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(
+                                            text = daysText,
+                                            fontSize = 11.sp,
+                                            color = CyberYellow,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            textAlign = TextAlign.End
+                                        )
                                     }
+                                }
+                                if (hasProviderCard(activeSub)) {
+                                    SubscriptionProviderCard(activeSub, onOpenUrl, contentColor = CyberYellow)
                                 }
                             }
                         }
@@ -427,12 +448,12 @@ fun ServerListScreen(
                                 )
                             }
 
-                            if (showSortMenu) LumenMenu(
-                                expanded = true,
+                            LumenMenu(
+                                expanded = showSortMenu,
                                 onDismissRequest = { showSortMenu = false }
                             ) {
                                 serverSortOptions(strings).forEach { (sort, label) ->
-                                    DropdownMenuItem(text = { Text(label) }, onClick = {
+                                    DropdownMenuItem(text = { Text(label, color = Color.White) }, onClick = {
                                         sortKey = sort.name
                                         showSortMenu = false
                                     })
@@ -442,10 +463,10 @@ fun ServerListScreen(
 
                         DashboardPingAllButton(isPinging, filteredNodes.isNotEmpty(), { onPingNodes(filteredNodes) }, onStopPing)
                     }
+
                 }
-                
                 if (preparing && filteredNodes.isEmpty()) item(key = "preparing_servers", contentType = "progress") {
-                    androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth(), color = CyberYellow, trackColor = CardDark)
+                    LinearProgressIndicator(Modifier.fillMaxWidth(), color = CyberYellow, trackColor = CardDark)
                 }
                 if (filteredNodes.isEmpty() && !preparing) {
                     item(key = "empty_servers", contentType = "empty") {
@@ -458,12 +479,12 @@ fun ServerListScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(Icons.Default.Search, contentDescription = null,
-                                tint = TextMuted,
+                                tint = CyberYellow,
                                 modifier = Modifier.size(28.dp))
                             Spacer(Modifier.height(12.dp))
                             Text(if (nodes.isEmpty()) strings.noServers else strings.nothingFound,
                                 style = MaterialTheme.typography.bodyMedium,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                textAlign = TextAlign.Center,
                                 color = TextMuted)
                             Spacer(Modifier.height(8.dp))
                             TextButton(onClick = {
@@ -475,7 +496,7 @@ fun ServerListScreen(
                                     countryPref = "0"
                                     maxPingPref = "0"
                                 }
-                            }) { Text(if (nodes.isEmpty()) strings.add else strings.resetFilters, color = CyberYellow) }
+                            }) { Text(if (nodes.isEmpty()) strings.add else strings.resetFilters, color = CyberYellow, fontWeight = FontWeight.Bold) }
                         }
                     }
                 }
@@ -486,19 +507,39 @@ fun ServerListScreen(
                         Text("${CountryFlagHelper.getFlagEmoji(country)}  $country · ${sectionNodes.size}",
                             Modifier.padding(horizontal = 8.dp, vertical = 10.dp), style = MaterialTheme.typography.labelLarge, color = Color.White)
                     }
-                    items(sectionNodes, key = { it.id }, contentType = { "server" }) { node ->
-                        ServerListRow(if (pendingSelectedId != null) node.copy(isSelected = node.id == pendingSelectedId) else node, node.id in selectedIds,
-                            node.id in pingingNodeIds || testingNodeId == node.id,
-                            serverTestResults[node.id],
-                            onClick = { clicked ->
-                                if (selectedIds.isEmpty()) selectServer(clicked)
-                                else selectedIds = if (clicked.id in selectedIds) selectedIds - clicked.id else selectedIds + clicked.id
-                            },
-                            onLongClick = { selectedIds = selectedIds + it.id },
-                            onEditNode = onEditNode, onPingNode = onPingNode,
-                            onCopyNodeLink = onCopyNodeLink, onExportQrCode = onExportQrCode,
-                            onMove = { movingNodes = listOf(it) }, onDeleteNode = { deletingNode = it })
+                if (compactGrid) {
+                    items(sectionNodes.chunked(3), key = { row -> "grid:" + row.joinToString { it.id } }, contentType = { "server_grid" }) { row ->
+                        Row(Modifier.fillMaxWidth().animateItem(fadeInSpec = null, fadeOutSpec = null),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            row.forEach { node ->
+                                CompactServerCard(if (pendingSelectedId != null) node.copy(isSelected = node.id == pendingSelectedId) else node,
+                                    node.id in selectedIds, node.id in pingingNodeIds || testingNodeId == node.id,
+                                    onClick = {
+                                        if (selectedIds.isEmpty()) selectServer(node)
+                                        else selectedIds = if (node.id in selectedIds) selectedIds - node.id else selectedIds + node.id
+                                    }, onLongClick = { selectedIds = selectedIds + node.id },
+                                    onEdit = { onEditNode(node) }, onPing = { onPingNode(node) },
+                                    onCopy = { onCopyNodeLink(node) }, onExportLumen = { onExportLumen(node) },
+                                    onDelete = { deletingNode = node }, modifier = Modifier.weight(1f))
+                            }
+                            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
+                } else items(sectionNodes, key = { it.id }, contentType = { "server" }) { node ->
+                    ServerListRow(if (pendingSelectedId != null) node.copy(isSelected = node.id == pendingSelectedId) else node, node.id in selectedIds,
+                        node.id in pingingNodeIds || testingNodeId == node.id,
+                        serverTestResults[node.id],
+                        onClick = { clicked ->
+                            if (selectedIds.isEmpty()) selectServer(clicked)
+                            else selectedIds = if (clicked.id in selectedIds) selectedIds - clicked.id else selectedIds + clicked.id
+                        },
+                        onLongClick = { selectedIds = selectedIds + it.id },
+                        onEditNode = onEditNode, onPingNode = onPingNode,
+                        onCopyNodeLink = onCopyNodeLink, onExportQrCode = onExportQrCode, onExportLumen = onExportLumen,
+                        onMove = { movingNodes = listOf(it) }, onDeleteNode = { deletingNode = it },
+                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
+                }
+
                 }
                 item(key = "server_footer", contentType = "spacer") {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -593,11 +634,11 @@ fun ServerListScreen(
             dismissText = strings.cancel, onDismiss = { movingNodes = null }) {
             Column {
                 TextButton(onClick = { onAssignNodesToGroup(nodesToMove, null); movingNodes = null; selectedIds = emptySet() }) {
-                    Text(strings.groupDefault)
+                    Text(strings.groupDefault, color = Color.White)
                 }
                 serverGroups.forEach { group ->
                     TextButton(onClick = { onAssignNodesToGroup(nodesToMove, group.id); movingNodes = null; selectedIds = emptySet() }) {
-                        Text(group.name)
+                        Text(group.name, color = Color.White)
                     }
                 }
             }
@@ -605,196 +646,164 @@ fun ServerListScreen(
     }
 }
 
+@Composable
+private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit) {
+    LumenFilterChip(label, isSelected, onClick)
+}
+
 internal fun subscriptionForServerFilter(filter: String, subscriptions: List<SubscriptionUiModel>): SubscriptionUiModel? =
     filter.takeIf { it.startsWith("subscription:") }?.removePrefix("subscription:")
         ?.let { id -> subscriptions.firstOrNull { it.id == id } }
 
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ServerListRow(
     node: NodeUiModel, selectionChecked: Boolean, pinging: Boolean, testResult: String?,
     onClick: (NodeUiModel) -> Unit, onLongClick: (NodeUiModel) -> Unit,
     onEditNode: (NodeUiModel) -> Unit, onPingNode: (NodeUiModel) -> Unit,
     onCopyNodeLink: (NodeUiModel) -> Unit, onExportQrCode: (NodeUiModel) -> Unit,
+    onExportLumen: (NodeUiModel) -> Unit,
     onMove: (NodeUiModel) -> Unit, onDeleteNode: (NodeUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val strings = LocalStrings.current
     var showNodeMenu by remember(node.id) { mutableStateOf(false) }
     
-    val isSelected = node.isSelected || selectionChecked
-    val borderColor = if (isSelected) CyberYellow else CardStroke
-    val borderWidth = if (isSelected) 2.dp else 1.dp
-    val cardShape = RoundedCornerShape(16.dp)
+    val isSelected = node.isSelected
+    val highlighted = isSelected || selectionChecked
     
+    val cardBg by animateColorAsState(
+        targetValue = if (highlighted) CyberYellowMuted else CardDark,
+        animationSpec = spring(), label = "server_color"
+    )
+    val rowCorner by animateDpAsState(
+        targetValue = if (highlighted) 22.dp else 16.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ), label = "server_shape"
+    )
+    
+    val textPrimary = if (highlighted) CyberYellow else Color.White
+    val textMuted = if (highlighted) Color.White.copy(alpha = 0.8f) else TextMuted
+
     val flagEmoji = remember(node.countryCode) {
         CountryFlagHelper.getServerFlagEmoji(node.countryCode)
     }
-    
-    // === سیستم جدید برای لود پرچم‌های مستطیلی تمیز از اینترنت ===
-    val countryCodeStr = node.countryCode.trim().lowercase().take(2)
-    var flagBitmap by remember(countryCodeStr) { mutableStateOf(flagMemoryCache[countryCodeStr]) }
-    var loadFailed by remember(countryCodeStr) { mutableStateOf(false) }
-
-    LaunchedEffect(countryCodeStr) {
-        if (countryCodeStr.length == 2 && !flagMemoryCache.containsKey(countryCodeStr) && !loadFailed) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val url = URL("https://flagcdn.com/h40/$countryCodeStr.png")
-                    val conn = (url.openConnection() as HttpURLConnection).apply {
-                        connectTimeout = 3000
-                        readTimeout = 3000
-                    }
-                    if (conn.responseCode in 200..299) {
-                        val bytes = conn.inputStream.readBytes()
-                        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        decoded?.asImageBitmap()?.let { img ->
-                            flagMemoryCache[countryCodeStr] = img
-                            flagBitmap = img
-                        }
-                    } else {
-                        loadFailed = true
-                    }
-                } catch (e: Exception) {
-                    loadFailed = true
-                }
-            }
-        }
-    }
-    // =======================================================
 
     val pingMs = node.pingMs
+    val unreachable = pingMs != null && pingMs <= 0 && !pinging
     val pingText = when {
         pinging -> "..."
-        pingMs != null && pingMs > 0 -> "${pingMs}ms"
-        pingMs != null -> "FAIL"
+        pingMs != null && pingMs > 0 -> "$pingMs ms"
+        pingMs != null -> strings.pingUnreachable
         else -> "--"
     }
 
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(cardShape)
-            .background(CardDark)
-            .border(borderWidth, borderColor, cardShape)
+            .graphicsLayer {
+                shape = RoundedCornerShape(rowCorner)
+                clip = true
+            }
+            .drawBehind { drawRect(cardBg) }
+            .border(
+                width = if (highlighted) 1.5.dp else 1.dp,
+                color = if (highlighted) CyberYellow else CardStroke,
+                shape = RoundedCornerShape(rowCorner)
+            )
             .combinedClickable(
                 onClick = { onClick(node) },
                 onLongClick = { onLongClick(node) }
             )
-            .padding(16.dp)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(BgDark)
+                .border(1.dp, CardStroke, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
         ) {
-            
-            // نمایش پرچم مستطیلی تصویر (یا در صورت قطعی اینترنت، ایموجی پیش‌فرض)
-            Box(
-                modifier = Modifier
-                    .width(36.dp)
-                    .height(24.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(Color(0xFF1E1E29)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (flagBitmap != null) {
-                    Image(
-                        bitmap = flagBitmap!!,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Text(text = flagEmoji, fontSize = 20.sp)
-                }
+            Text(
+                text = flagEmoji,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.width(14.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = node.name,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                color = textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = node.localizedProtocol(strings),
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = textMuted,
+                    maxLines = 1, 
+                    overflow = TextOverflow.Ellipsis, 
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = pingText, 
+                    fontFamily = FontFamily.Monospace,
+                    style = MaterialTheme.typography.labelSmall.copy(textDirection = TextDirection.Ltr),
+                    color = if (pinging || pingMs == null) textMuted else pingColor(pingMs, cardBg),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1, 
+                    overflow = TextOverflow.Ellipsis
+                )
             }
+        }
 
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // Server Info
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = node.name,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (isSelected) {
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = CyberYellow,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+        if (highlighted) {
+            Spacer(modifier = Modifier.width(10.dp))
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = strings.selected,
+                tint = CyberYellow,
+                modifier = Modifier.size(24.dp)
+            )
+        } else {
+            Box {
+                IconButton(onClick = { showNodeMenu = true }, modifier = Modifier.size(40.dp)) {
+                    Icon(Icons.Default.MoreVert, contentDescription = node.name, tint = TextMuted)
                 }
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(6.dp)
-                            .clip(CircleShape)
-                            .background(if (isSelected) CyberYellow else TextMuted)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "PROTOCOL: ${node.displayProtocol.uppercase()}",
-                        color = TextMuted,
-                        fontSize = 10.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
-
-            // Ping Badge & Menu
-            Column(horizontalAlignment = Alignment.End) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(if (pingMs != null && pingMs > 0 && !pinging) NeonGreen.copy(alpha = 0.15f) else CardStroke)
-                        .padding(horizontal = 6.dp, vertical = 4.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = pingText,
-                            color = if (pingMs != null && pingMs > 0 && !pinging) NeonGreen else TextMuted,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                }
-                Box {
-                    IconButton(onClick = { showNodeMenu = true }, modifier = Modifier.size(32.dp).padding(top = 4.dp)) {
-                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = TextMuted)
-                    }
-                    if (showNodeMenu) LumenMenu(expanded = true, onDismissRequest = { showNodeMenu = false }) {
-                        DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
-                            showNodeMenu = false; onEditNode(node)
-                        })
-                        DropdownMenuItem(text = { Text(strings.ping) }, onClick = {
-                            showNodeMenu = false; onPingNode(node)
-                        })
-                        DropdownMenuItem(text = { Text(strings.copyLink) }, onClick = {
-                            showNodeMenu = false; onCopyNodeLink(node)
-                        })
-                        DropdownMenuItem(text = { Text(strings.exportQrCode) }, onClick = {
-                            showNodeMenu = false; onExportQrCode(node)
-                        })
-                        DropdownMenuItem(text = { Text(strings.moveToGroup) }, onClick = {
-                            showNodeMenu = false; onMove(node)
-                        })
-                        DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
-                            showNodeMenu = false; onDeleteNode(node)
-                        })
-                    }
+                if (showNodeMenu) LumenMenu(expanded = true, onDismissRequest = { showNodeMenu = false }) {
+                    if (!node.isProtected) DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
+                        showNodeMenu = false; onEditNode(node)
+                    })
+                    DropdownMenuItem(text = { Text(strings.ping) }, onClick = {
+                        showNodeMenu = false; onPingNode(node)
+                    })
+                    if (!node.isProtected) DropdownMenuItem(text = { Text(strings.copyLink) }, onClick = {
+                        showNodeMenu = false; onCopyNodeLink(node)
+                    })
+                    if (!node.isProtected) DropdownMenuItem(
+                        text = { Text(LumenProfileText.EXPORT.inLanguage(strings.localeCode)) },
+                        onClick = { showNodeMenu = false; onExportLumen(node) })
+                    if (!node.isProtected) DropdownMenuItem(text = { Text(strings.exportQrCode) }, onClick = {
+                        showNodeMenu = false; onExportQrCode(node)
+                    })
+                    DropdownMenuItem(text = { Text(strings.moveToGroup) }, onClick = {
+                        showNodeMenu = false; onMove(node)
+                    })
+                    DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
+                        showNodeMenu = false; onDeleteNode(node)
+                    })
                 }
             }
         }
