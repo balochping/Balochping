@@ -1,11 +1,9 @@
 package com.lumen.ui.screens
 
-import android.graphics.BitmapFactory
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,12 +28,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -46,12 +39,6 @@ import androidx.compose.ui.unit.sp
 
 import com.lumen.ui.components.*
 import com.lumen.ui.theme.*
-
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-
-// Cache for High Quality Rectangular Flags
-private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 
 // === Premium Yellow Gaming Colors (X Ping Pro) ===
 private val CyberYellow = Color(0xFFFFD600)
@@ -665,7 +652,6 @@ private fun ServerListRow(
     modifier: Modifier = Modifier
 ) {
     val strings = LocalStrings.current
-    val context = LocalContext.current
     var showNodeMenu by remember(node.id) { mutableStateOf(false) }
     
     val isSelected = node.isSelected
@@ -716,55 +702,15 @@ private fun ServerListRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         
-        // --- Native Rectangular Flag Layout (Left Side) ---
-        Box(
-            modifier = Modifier
-                .width(42.dp)
-                .height(28.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-        ) {
-            val resourceId = remember(node.countryCode) {
-                CountryFlagHelper.getFlagResourceStrict(node.countryCode)
-            }
-            
-            if (resourceId != 0) {
-                var flagBitmap by remember(resourceId) { mutableStateOf<ImageBitmap?>(null) }
-                LaunchedEffect(resourceId) {
-                    flagBitmap = flagMemoryCache[node.countryCode]
-                    if (flagBitmap == null) {
-                        withContext(Dispatchers.IO) {
-                            val opts = BitmapFactory.Options().apply {
-                                inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
-                            }
-                            val bmp = BitmapFactory.decodeResource(context.resources, resourceId, opts)
-                            if (bmp != null) {
-                                val ib = bmp.asImageBitmap()
-                                flagMemoryCache[node.countryCode] = ib
-                                flagBitmap = ib
-                            }
-                        }
-                    }
-                }
-                flagBitmap?.let { bmp ->
-                    Image(
-                        bitmap = bmp,
-                        contentDescription = node.countryCode,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } ?: Box(modifier = Modifier.fillMaxSize().background(Color.Transparent))
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(Color.Transparent),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("?", color = Color.White, fontSize = 14.sp)
-                }
-            }
+        // --- Native Flat Flag Emoji (No Box!) ---
+        val flagEmoji = remember(node.countryCode) {
+            CountryFlagHelper.getServerFlagEmoji(node.countryCode)
         }
-
-        Spacer(modifier = Modifier.width(14.dp))
+        Text(
+            text = flagEmoji,
+            fontSize = 28.sp,
+            modifier = Modifier.padding(end = 14.dp)
+        )
 
         // --- Server Info (Right Side) ---
         Column(modifier = Modifier.weight(1f)) {
