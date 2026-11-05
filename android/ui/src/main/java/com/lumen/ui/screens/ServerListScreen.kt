@@ -1,5 +1,7 @@
 package com.lumen.ui.screens
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -7,69 +9,49 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lumen.ui.components.AddServerSheet
-import com.lumen.ui.components.BrandTopBar
-import com.lumen.ui.components.ConnectionState
-import com.lumen.ui.components.CountryFlagHelper
-import com.lumen.ui.components.LumenDialog
-import com.lumen.ui.components.SubscriptionDetailsDialog
-import com.lumen.ui.theme.LocalLumenColors
-import com.lumen.ui.theme.TileBlueDark
-import com.lumen.ui.theme.TileBlueDarkOn
-import com.lumen.ui.theme.TileBlueLight
-import com.lumen.ui.theme.TileBlueLightOn
+
+import com.lumen.ui.components.*
+import com.lumen.ui.theme.*
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
+
+// Cache for High Quality Rectangular Flags
+private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
+
+// === Premium Yellow Gaming Colors ===
+private val CyberYellow = Color(0xFFFFD600)
+private val NeonGreen = Color(0xFF00FF66)
+private val BgDark = Color(0xFF09090E)
+private val CardDark = Color(0xFF15151E)
+private val CardStroke = Color(0xFF252536)
+private val TextMuted = Color(0xFF8B93A5)
 
 enum class ServerSort { PING, NAME, NAME_DESC, COUNTRY, PROTOCOL }
 
@@ -133,7 +115,6 @@ fun ServerListScreen(
     onPingNode: (NodeUiModel) -> Unit,
     onCopyNodeLink: (NodeUiModel) -> Unit = {},
     onExportQrCode: (NodeUiModel) -> Unit = {},
-    onExportLumen: (NodeUiModel) -> Unit = {},
     onImportClipboard: () -> Unit,
     onUpdateSubscription: (SubscriptionUiModel, String, String) -> Boolean = { _, _, _ -> false },
     onRefreshSubscription: (SubscriptionUiModel) -> Unit,
@@ -157,8 +138,6 @@ fun ServerListScreen(
     selectedGroupFilter: String? = null,
     onSelectedGroupFilter: (String) -> Unit = {}
 ) {
-    val lumenColors = LocalLumenColors.current
-    val art = com.lumen.ui.theme.expressivePalette()
     val strings = LocalStrings.current
     val scanQr = rememberQrScanRequest(onImportQr)
 
@@ -176,7 +155,6 @@ fun ServerListScreen(
     var detailsSubscription by remember { mutableStateOf<SubscriptionUiModel?>(null) }
     var deletingNode by remember { mutableStateOf<NodeUiModel?>(null) }
     var showCreateGroup by remember { mutableStateOf(false) }
-    var showGroupMenu by remember { mutableStateOf(false) }
     var renamingGroup by remember { mutableStateOf<ServerGroupUiModel?>(null) }
     var deletingGroup by remember { mutableStateOf<ServerGroupUiModel?>(null) }
     var movingNodes by remember { mutableStateOf<List<NodeUiModel>?>(null) }
@@ -185,7 +163,6 @@ fun ServerListScreen(
     val selectServer: (NodeUiModel) -> Unit = { node -> pendingSelectedId = node.id; onSelectNode(node) }
     var showDeleteAll by remember { mutableStateOf(false) }
     var showSubscriptionMenu by remember { mutableStateOf(false) }
-    var showFilterMenu by remember { mutableStateOf(false) }
     var protocol by remember { mutableStateOf("") }
     var reachablePref by if (persistPreferences) rememberUiPreference("servers_filter_reachable", "0") else remember { mutableStateOf("0") }
     val onlyReachable = reachablePref == "1"
@@ -194,6 +171,7 @@ fun ServerListScreen(
     val maxPing = maxPingPref.toIntOrNull()?.coerceAtLeast(0) ?: 0
     val groupByCountry = countryPref == "1"
     var autoPingStarted by remember { mutableStateOf(false) }
+    
     LaunchedEffect(Unit) { onOpen() }
     LaunchedEffect(autoPingOnOpen, nodes.isNotEmpty()) {
         if (autoPingOnOpen && nodes.isNotEmpty() && !autoPingStarted) {
@@ -207,8 +185,8 @@ fun ServerListScreen(
     val prepared by rememberPreparedServerList(nodes, query)
     val preparing = prepared.source !== nodes || prepared.query != query
     val manualNodesCount = prepared.manualCount
-    // Keep rows during a ping refresh; never display another group's rows after switching groups.
     val filteredNodes = if (prepared.query.group == selectedFilter) prepared.visible else emptyList()
+    
     LaunchedEffect(prepared.source, pendingSelectedId) {
         if (pendingSelectedId != null && (prepared.source.any { it.id == pendingSelectedId && it.isSelected } ||
                 (prepared.source === nodes && nodes.none { it.id == pendingSelectedId }))) pendingSelectedId = null
@@ -216,13 +194,18 @@ fun ServerListScreen(
 
     val activeSub = subscriptionForServerFilter(selectedFilter, subscriptions)
 
+    val bgBrush = Brush.radialGradient(
+        colors = listOf(Color(0xFF2A1C00), BgDark),
+        center = Offset(500f, 0f),
+        radius = 1600f
+    )
+
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(bgBrush)
             .statusBarsPadding()
     ) {
-        // Top Bar
         BrandTopBar(onAddClick = { showAddSheet = true }, title = strings.servers)
 
         Column(
@@ -233,16 +216,16 @@ fun ServerListScreen(
             if (selectedIds.isNotEmpty()) {
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${strings.selected}: ${selectedIds.size}", style = MaterialTheme.typography.labelLarge)
-                    TextButton(onClick = { onPingNodes(nodes.filter { it.id in selectedIds }) }) { Text(strings.ping) }
+                    Text("${strings.selected}: ${selectedIds.size}", style = MaterialTheme.typography.labelLarge, color = CyberYellow)
+                    TextButton(onClick = { onPingNodes(nodes.filter { it.id in selectedIds }) }) { Text(strings.ping, color = Color.White) }
                     TextButton(onClick = {
                         onExportNodesText(selectedIds).takeIf { it.isNotBlank() }?.let(onShareText)
-                    }) { Text(strings.exportSelected) }
-                    TextButton(onClick = { movingNodes = nodes.filter { it.id in selectedIds } }) { Text(strings.moveToGroup) }
-                    TextButton(onClick = { selectedIds = emptySet() }) { Text(strings.cancel) }
+                    }) { Text(strings.exportSelected, color = Color.White) }
+                    TextButton(onClick = { movingNodes = nodes.filter { it.id in selectedIds } }) { Text(strings.moveToGroup, color = Color.White) }
+                    TextButton(onClick = { selectedIds = emptySet() }) { Text(strings.cancel, color = Color.Red) }
                 }
             }
-            // 1. Search Bar
+            
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -255,14 +238,14 @@ fun ServerListScreen(
                         Text(
                             text = strings.searchServers,
                             fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = TextMuted
                         )
                     },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = TextMuted,
                             modifier = Modifier.size(20.dp)
                         )
                     },
@@ -272,20 +255,20 @@ fun ServerListScreen(
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = strings.clear,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    tint = TextMuted,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
                     },
                     singleLine = true,
-                    shape = RoundedCornerShape(28.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = lumenColors.raised,
-                        unfocusedContainerColor = lumenColors.raised,
-                        disabledContainerColor = lumenColors.raised,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent
+                        focusedContainerColor = CardDark,
+                        unfocusedContainerColor = CardDark,
+                        disabledContainerColor = CardDark,
+                        focusedBorderColor = CyberYellow,
+                        unfocusedBorderColor = CardStroke
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -305,205 +288,183 @@ fun ServerListScreen(
                 onDeleteGroup = currentGroup?.let { group -> { deletingGroup = group } },
                 onDeleteManual = if (selectedFilter == "manual" && manualNodesCount > 0) ({ showDeleteAll = true }) else null)
 
-            // 5. Server List
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 100.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                contentPadding = PaddingValues(bottom = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item(key = "server_overview", contentType = "overview") {
-            // 3. Subscription Provider Banner (if present and filter matches)
-            if (activeSub != null && selectedFilter != "manual") {
-                val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-                val bannerBg = art.blue
-                val bannerText = art.onBlue
-                val btnBg = art.onLavender.copy(alpha = .1f)
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 6.dp)
-                        .clip(RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp, bottomEnd = 12.dp, bottomStart = 30.dp))
-                        .background(bannerBg)
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    com.lumen.ui.components.ExpressiveMotif(com.lumen.ui.components.Motif.Fan, bannerText.copy(alpha = .08f),
-                        Modifier.align(Alignment.BottomEnd).size(140.dp))
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(activeSub.name, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                    style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = bannerText)
-                                Text(strings.serverCountLabel(activeSub.nodeCount),
-                                    style = MaterialTheme.typography.bodySmall, color = bannerText.copy(alpha = .7f))
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(com.lumen.ui.components.expressiveShape(com.lumen.ui.components.Motif.Clover))
-                                    .background(btnBg)
-                                    .clickable { onRefreshSubscription(activeSub) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                if (refreshingIds.contains(activeSub.id)) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(16.dp),
-                                        strokeWidth = 2.dp,
-                                        color = bannerText
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = strings.refreshSubscription,
-                                        tint = bannerText,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                }
-                            }
-                            Box {
-                                IconButton(onClick = { showSubscriptionMenu = true }) {
-                                    Icon(Icons.Default.MoreVert, contentDescription = activeSub.name, tint = bannerText)
-                                }
-                                LumenMenu(expanded = showSubscriptionMenu, onDismissRequest = { showSubscriptionMenu = false }) {
-                                    DropdownMenuItem(text = { Text(strings.subscriptionProperties) }, onClick = {
-                                        showSubscriptionMenu = false; detailsSubscription = activeSub
-                                    })
-                                    DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
-                                        showSubscriptionMenu = false; editingSubscription = activeSub
-                                    })
-                                    DropdownMenuItem(text = { Text(strings.exportAll) }, onClick = {
-                                        showSubscriptionMenu = false
-                                        onExportSubscriptionText(activeSub.id).takeIf { it.isNotBlank() }?.let(onShareText)
-                                    })
-                                    DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
-                                        showSubscriptionMenu = false; deletingSubscription = activeSub
-                                    })
-                                }
-                            }
-                            }
-                        }
-
-                        activeSub.trafficRatio?.let { trafficRatio ->
-                        Spacer(modifier = Modifier.height(8.dp))
-                        val ratio = trafficRatio.coerceIn(0f, 1f)
+                    
+                    if (activeSub != null && selectedFilter != "manual") {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.background)
+                                .padding(vertical = 6.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(CardDark)
+                                .border(1.dp, CardStroke, RoundedCornerShape(20.dp))
+                                .padding(16.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth(ratio)
-                                    .height(6.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(MaterialTheme.colorScheme.primary)
-                            )
-                        }
-                        }
+                            Column {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text(activeSub.name.uppercase(), maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                            fontSize = 15.sp, fontWeight = FontWeight.Black, color = CyberYellow, fontFamily = FontFamily.Monospace)
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(strings.serverCountLabel(activeSub.nodeCount),
+                                            fontSize = 11.sp, color = TextMuted)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(BgDark)
+                                                .border(1.dp, CardStroke, RoundedCornerShape(10.dp))
+                                                .clickable { onRefreshSubscription(activeSub) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            if (refreshingIds.contains(activeSub.id)) {
+                                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = CyberYellow)
+                                            } else {
+                                                Icon(Icons.Default.Refresh, contentDescription = strings.refreshSubscription, tint = CyberYellow, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                        Spacer(Modifier.width(8.dp))
+                                        Box {
+                                            IconButton(onClick = { showSubscriptionMenu = true }, modifier = Modifier.size(40.dp)) {
+                                                Icon(Icons.Default.MoreVert, contentDescription = activeSub.name, tint = TextMuted)
+                                            }
+                                            if (showSubscriptionMenu) LumenMenu(expanded = true, onDismissRequest = { showSubscriptionMenu = false }) {
+                                                DropdownMenuItem(text = { Text(strings.subscriptionProperties) }, onClick = {
+                                                    showSubscriptionMenu = false; detailsSubscription = activeSub
+                                                })
+                                                DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
+                                                    showSubscriptionMenu = false; editingSubscription = activeSub
+                                                })
+                                                DropdownMenuItem(text = { Text(strings.exportAll) }, onClick = {
+                                                    showSubscriptionMenu = false
+                                                    onExportSubscriptionText(activeSub.id).takeIf { it.isNotBlank() }?.let(onShareText)
+                                                })
+                                                DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
+                                                    showSubscriptionMenu = false; deletingSubscription = activeSub
+                                                })
+                                            }
+                                        }
+                                    }
+                                }
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                                activeSub.trafficRatio?.let { trafficRatio ->
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    val trafficText = activeSub.trafficSummary ?: "—"
+                                    val daysText = activeSub.expiryDaysLeft?.let { "$it ${strings.daysRemaining}" }
 
-                        val trafficText = activeSub.trafficSummary ?: "—"
-                        val daysText = activeSub.expiryDaysLeft?.let { "$it ${strings.daysRemaining}" }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(text = "DATA USAGE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                        Text(text = trafficText, color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.height(8.dp))
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = trafficText,
-                                fontSize = 11.sp,
-                                color = bannerText.copy(alpha = 0.8f)
-                            )
-                            if (daysText != null) Text(
-                                text = daysText,
-                                fontSize = 11.sp,
-                                color = bannerText.copy(alpha = 0.8f)
-                            )
-                        }
-                        if (com.lumen.ui.components.hasProviderCard(activeSub)) {
-                            com.lumen.ui.components.SubscriptionProviderCard(activeSub, onOpenUrl,
-                                contentColor = bannerText)
+                                    val ratio = trafficRatio.coerceIn(0f, 1f)
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(4.dp)
+                                            .clip(RoundedCornerShape(2.dp))
+                                            .background(BgDark)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth(ratio)
+                                                .height(4.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(CyberYellow)
+                                        )
+                                    }
+                                    if (daysText != null) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(text = daysText, fontSize = 11.sp, color = CyberYellow)
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            }
 
-            // 4. List Toolbar: "Сначала быстрые" + "Проверить пинг"
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box {
                     Row(
                         modifier = Modifier
-                            .height(48.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .clickable { showSortMenu = true }
-                            .padding(horizontal = 8.dp),
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = serverSortLabel(currentSort, strings),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Icon(
-                            Icons.Filled.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        Box {
+                            Row(
+                                modifier = Modifier
+                                    .height(48.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable { showSortMenu = true }
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = serverSortLabel(currentSort, strings),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = TextMuted
+                                )
+                                Icon(
+                                    Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = TextMuted
+                                )
+                            }
 
-                    LumenMenu(
-                        expanded = showSortMenu,
-                        onDismissRequest = { showSortMenu = false }
-                    ) {
-                        serverSortOptions(strings).forEach { (sort, label) ->
-                            DropdownMenuItem(text = { Text(label) }, onClick = {
-                                sortKey = sort.name
-                                showSortMenu = false
-                            })
+                            if (showSortMenu) LumenMenu(
+                                expanded = true,
+                                onDismissRequest = { showSortMenu = false }
+                            ) {
+                                serverSortOptions(strings).forEach { (sort, label) ->
+                                    DropdownMenuItem(text = { Text(label) }, onClick = {
+                                        sortKey = sort.name
+                                        showSortMenu = false
+                                    })
+                                }
+                            }
                         }
+
+                        DashboardPingAllButton(isPinging, filteredNodes.isNotEmpty(), { onPingNodes(filteredNodes) }, onStopPing)
                     }
                 }
-
-                DashboardPingAllButton(isPinging, filteredNodes.isNotEmpty(), { onPingNodes(filteredNodes) }, onStopPing)
-            }
-
-                }
+                
                 if (preparing && filteredNodes.isEmpty()) item(key = "preparing_servers", contentType = "progress") {
-                    androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth())
+                    androidx.compose.material3.LinearProgressIndicator(Modifier.fillMaxWidth(), color = CyberYellow, trackColor = CardDark)
                 }
                 if (filteredNodes.isEmpty() && !preparing) {
                     item(key = "empty_servers", contentType = "empty") {
                         Column(
                             modifier = Modifier.fillMaxWidth()
                                 .clip(RoundedCornerShape(24.dp))
-                                .background(MaterialTheme.colorScheme.surface)
+                                .background(CardDark)
+                                .border(1.dp, CardStroke, RoundedCornerShape(24.dp))
                                 .padding(horizontal = 20.dp, vertical = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Icon(Icons.Default.Search, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = TextMuted,
                                 modifier = Modifier.size(28.dp))
                             Spacer(Modifier.height(12.dp))
                             Text(if (nodes.isEmpty()) strings.noServers else strings.nothingFound,
                                 style = MaterialTheme.typography.bodyMedium,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                color = TextMuted)
                             Spacer(Modifier.height(8.dp))
                             TextButton(onClick = {
                                 if (nodes.isEmpty()) showAddSheet = true else {
@@ -514,7 +475,7 @@ fun ServerListScreen(
                                     countryPref = "0"
                                     maxPingPref = "0"
                                 }
-                            }) { Text(if (nodes.isEmpty()) strings.add else strings.resetFilters) }
+                            }) { Text(if (nodes.isEmpty()) strings.add else strings.resetFilters, color = CyberYellow) }
                         }
                     }
                 }
@@ -523,41 +484,21 @@ fun ServerListScreen(
                 sections.forEach { (country, sectionNodes) ->
                     if (country.isNotBlank()) item(key = "country:$country", contentType = "country") {
                         Text("${CountryFlagHelper.getFlagEmoji(country)}  $country · ${sectionNodes.size}",
-                            Modifier.padding(horizontal = 8.dp, vertical = 10.dp), style = MaterialTheme.typography.labelLarge)
+                            Modifier.padding(horizontal = 8.dp, vertical = 10.dp), style = MaterialTheme.typography.labelLarge, color = Color.White)
                     }
-                if (compactGrid) {
-                    items(sectionNodes.chunked(3), key = { row -> "grid:" + row.joinToString { it.id } }, contentType = { "server_grid" }) { row ->
-                        Row(Modifier.fillMaxWidth().animateItem(fadeInSpec = null, fadeOutSpec = null),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            row.forEach { node ->
-                                CompactServerCard(if (pendingSelectedId != null) node.copy(isSelected = node.id == pendingSelectedId) else node,
-                                    node.id in selectedIds, node.id in pingingNodeIds || testingNodeId == node.id,
-                                    onClick = {
-                                        if (selectedIds.isEmpty()) selectServer(node)
-                                        else selectedIds = if (node.id in selectedIds) selectedIds - node.id else selectedIds + node.id
-                                    }, onLongClick = { selectedIds = selectedIds + node.id },
-                                    onEdit = { onEditNode(node) }, onPing = { onPingNode(node) },
-                                    onCopy = { onCopyNodeLink(node) }, onExportLumen = { onExportLumen(node) },
-                                    onDelete = { deletingNode = node }, modifier = Modifier.weight(1f))
-                            }
-                            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-                        }
+                    items(sectionNodes, key = { it.id }, contentType = { "server" }) { node ->
+                        ServerListRow(if (pendingSelectedId != null) node.copy(isSelected = node.id == pendingSelectedId) else node, node.id in selectedIds,
+                            node.id in pingingNodeIds || testingNodeId == node.id,
+                            serverTestResults[node.id],
+                            onClick = { clicked ->
+                                if (selectedIds.isEmpty()) selectServer(clicked)
+                                else selectedIds = if (clicked.id in selectedIds) selectedIds - clicked.id else selectedIds + clicked.id
+                            },
+                            onLongClick = { selectedIds = selectedIds + it.id },
+                            onEditNode = onEditNode, onPingNode = onPingNode,
+                            onCopyNodeLink = onCopyNodeLink, onExportQrCode = onExportQrCode,
+                            onMove = { movingNodes = listOf(it) }, onDeleteNode = { deletingNode = it })
                     }
-                } else items(sectionNodes, key = { it.id }, contentType = { "server" }) { node ->
-                    ServerListRow(if (pendingSelectedId != null) node.copy(isSelected = node.id == pendingSelectedId) else node, node.id in selectedIds,
-                        node.id in pingingNodeIds || testingNodeId == node.id,
-                        serverTestResults[node.id],
-                        onClick = { clicked ->
-                            if (selectedIds.isEmpty()) selectServer(clicked)
-                            else selectedIds = if (clicked.id in selectedIds) selectedIds - clicked.id else selectedIds + clicked.id
-                        },
-                        onLongClick = { selectedIds = selectedIds + it.id },
-                        onEditNode = onEditNode, onPingNode = onPingNode,
-                        onCopyNodeLink = onCopyNodeLink, onExportQrCode = onExportQrCode, onExportLumen = onExportLumen,
-                        onMove = { movingNodes = listOf(it) }, onDeleteNode = { deletingNode = it },
-                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
-                }
-
                 }
                 item(key = "server_footer", contentType = "spacer") {
                     Spacer(modifier = Modifier.height(16.dp))
@@ -664,18 +605,10 @@ fun ServerListScreen(
     }
 }
 
-@Composable
-private fun FilterPill(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    LumenFilterChip(label, isSelected, onClick)
-}
-
-/** Aggregate filters deliberately have no provider owner. */
 internal fun subscriptionForServerFilter(filter: String, subscriptions: List<SubscriptionUiModel>): SubscriptionUiModel? =
     filter.takeIf { it.startsWith("subscription:") }?.removePrefix("subscription:")
         ?.let { id -> subscriptions.firstOrNull { it.id == id } }
 
-
-/** Per-row inputs keep unrelated latency/selection updates skippable. */
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 private fun ServerListRow(
@@ -683,140 +616,187 @@ private fun ServerListRow(
     onClick: (NodeUiModel) -> Unit, onLongClick: (NodeUiModel) -> Unit,
     onEditNode: (NodeUiModel) -> Unit, onPingNode: (NodeUiModel) -> Unit,
     onCopyNodeLink: (NodeUiModel) -> Unit, onExportQrCode: (NodeUiModel) -> Unit,
-    onExportLumen: (NodeUiModel) -> Unit,
     onMove: (NodeUiModel) -> Unit, onDeleteNode: (NodeUiModel) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val strings = LocalStrings.current
-    val art = com.lumen.ui.theme.expressivePalette()
+    var showNodeMenu by remember(node.id) { mutableStateOf(false) }
+    
+    val isSelected = node.isSelected || selectionChecked
+    val borderColor = if (isSelected) CyberYellow else CardStroke
+    val borderWidth = if (isSelected) 2.dp else 1.dp
+    val cardShape = RoundedCornerShape(16.dp)
+    
+    val flagEmoji = remember(node.countryCode) {
+        CountryFlagHelper.getServerFlagEmoji(node.countryCode)
+    }
+    
+    // === سیستم جدید برای لود پرچم‌های مستطیلی تمیز از اینترنت ===
+    val countryCodeStr = node.countryCode.trim().lowercase().take(2)
+    var flagBitmap by remember(countryCodeStr) { mutableStateOf(flagMemoryCache[countryCodeStr]) }
+    var loadFailed by remember(countryCodeStr) { mutableStateOf(false) }
 
-                    var showNodeMenu by remember(node.id) { mutableStateOf(false) }
-                    val isSelected = node.isSelected
-                    val highlighted = isSelected || selectionChecked
-                    val cardBg = androidx.compose.animation.animateColorAsState(
-                        targetValue = if (selectionChecked) art.blue else if (isSelected) art.stage else MaterialTheme.colorScheme.surfaceContainerLow,
-                        animationSpec = androidx.compose.animation.core.spring(), label = "server_color"
-                    )
-                    val rowCorner = androidx.compose.animation.core.animateDpAsState(
-                        targetValue = if (highlighted) 22.dp else 14.dp,
-                        animationSpec = androidx.compose.animation.core.spring(
-                            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
-                            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
-                        ), label = "server_shape"
-                    )
-                    val textPrimary = if (selectionChecked) art.onBlue else if (isSelected) art.onStage else MaterialTheme.colorScheme.onSurface
-                    val textMuted = textPrimary.copy(alpha = .75f)
-
-                    val flagEmoji = remember(node.countryCode) {
-                        CountryFlagHelper.getServerFlagEmoji(node.countryCode)
+    LaunchedEffect(countryCodeStr) {
+        if (countryCodeStr.length == 2 && !flagMemoryCache.containsKey(countryCodeStr) && !loadFailed) {
+            withContext(Dispatchers.IO) {
+                try {
+                    val url = URL("https://flagcdn.com/h40/$countryCodeStr.png")
+                    val conn = (url.openConnection() as HttpURLConnection).apply {
+                        connectTimeout = 3000
+                        readTimeout = 3000
                     }
-
-                        // Latency
-                        val pingMs = node.pingMs
-                        val unreachable = pingMs != null && pingMs <= 0 && !pinging
-                        val pingText = when {
-                            pinging -> "..."
-                            pingMs != null && pingMs > 0 -> "$pingMs ms"
-                            pingMs != null -> strings.pingUnreachable
-                            else -> "--"
+                    if (conn.responseCode in 200..299) {
+                        val bytes = conn.inputStream.readBytes()
+                        val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        decoded?.asImageBitmap()?.let { img ->
+                            flagMemoryCache[countryCodeStr] = img
+                            flagBitmap = img
                         }
-
-
-                    Row(
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .graphicsLayer {
-                                shape = RoundedCornerShape(topStart = rowCorner.value, topEnd = 12.dp,
-                                    bottomEnd = rowCorner.value, bottomStart = 12.dp)
-                                clip = true
-                            }.drawBehind { drawRect(cardBg.value) }
-                            .combinedClickable(
-                                onClick = {
-                                    onClick(node)
-                                },
-                                onLongClick = { onLongClick(node) }
-                            )
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Flag squircle badge
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 18.dp, bottomEnd = 6.dp, bottomStart = 18.dp))
-                                .background(if (highlighted) art.lime else MaterialTheme.colorScheme.background),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = flagEmoji,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        // Info
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = node.name,
-                                fontSize = 15.sp,
-                                fontWeight = if (highlighted) FontWeight.Bold else FontWeight.SemiBold,
-                                letterSpacing = if (strings.localeCode == "fa") 0.sp else (-0.5).sp,
-                                color = textPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(node.localizedProtocol(strings),
-                                    style = MaterialTheme.typography.bodySmall, color = textMuted,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                                Spacer(Modifier.width(8.dp))
-                                Text(pingText, fontFamily = com.lumen.ui.theme.LumenMono,
-                                    style = MaterialTheme.typography.labelSmall.copy(textDirection = androidx.compose.ui.text.style.TextDirection.Ltr),
-                                    color = if (pinging || pingMs == null) textMuted else pingColor(pingMs, cardBg.value),
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            }
-                        }
-
-                        if (isSelected || selectionChecked) {
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Icon(
-                                imageVector = if (selectionChecked) Icons.Default.CheckBox else Icons.Default.CheckCircle,
-                                contentDescription = strings.selected,
-                                tint = if (art.stage.luminance() > .5f) art.onStage else art.lime,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                        Box {
-                            IconButton(onClick = { showNodeMenu = true }, modifier = Modifier.size(48.dp)) {
-                                Icon(Icons.Default.MoreVert, contentDescription = node.name, tint = textMuted)
-                            }
-                            if (showNodeMenu) LumenMenu(expanded = true, onDismissRequest = { showNodeMenu = false }) {
-                                if (!node.isProtected) DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
-                                    showNodeMenu = false; onEditNode(node)
-                                })
-                                DropdownMenuItem(text = { Text(strings.ping) }, onClick = {
-                                    showNodeMenu = false; onPingNode(node)
-                                })
-                                if (!node.isProtected) DropdownMenuItem(text = { Text(strings.copyLink) }, onClick = {
-                                    showNodeMenu = false; onCopyNodeLink(node)
-                                })
-                                if (!node.isProtected) DropdownMenuItem(
-                                    text = { Text(LumenProfileText.EXPORT.inLanguage(strings.localeCode)) },
-                                    onClick = { showNodeMenu = false; onExportLumen(node) })
-                                if (!node.isProtected) DropdownMenuItem(text = { Text(strings.exportQrCode) }, onClick = {
-                                    showNodeMenu = false; onExportQrCode(node)
-                                })
-                                DropdownMenuItem(text = { Text(strings.moveToGroup) }, onClick = {
-                                    showNodeMenu = false; onMove(node)
-                                })
-                                DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
-                                    showNodeMenu = false; onDeleteNode(node)
-                                })
-                            }
-                        }
+                    } else {
+                        loadFailed = true
                     }
+                } catch (e: Exception) {
+                    loadFailed = true
+                }
+            }
+        }
+    }
+    // =======================================================
 
+    val pingMs = node.pingMs
+    val pingText = when {
+        pinging -> "..."
+        pingMs != null && pingMs > 0 -> "${pingMs}ms"
+        pingMs != null -> "FAIL"
+        else -> "--"
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .background(CardDark)
+            .border(borderWidth, borderColor, cardShape)
+            .combinedClickable(
+                onClick = { onClick(node) },
+                onLongClick = { onLongClick(node) }
+            )
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            
+            // نمایش پرچم مستطیلی تصویر (یا در صورت قطعی اینترنت، ایموجی پیش‌فرض)
+            Box(
+                modifier = Modifier
+                    .width(36.dp)
+                    .height(24.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(Color(0xFF1E1E29)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (flagBitmap != null) {
+                    Image(
+                        bitmap = flagBitmap!!,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Text(text = flagEmoji, fontSize = 20.sp)
+                }
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // Server Info
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = node.name,
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (isSelected) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = CyberYellow,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) CyberYellow else TextMuted)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "PROTOCOL: ${node.displayProtocol.uppercase()}",
+                        color = TextMuted,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+
+            // Ping Badge & Menu
+            Column(horizontalAlignment = Alignment.End) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (pingMs != null && pingMs > 0 && !pinging) NeonGreen.copy(alpha = 0.15f) else CardStroke)
+                        .padding(horizontal = 6.dp, vertical = 4.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = pingText,
+                            color = if (pingMs != null && pingMs > 0 && !pinging) NeonGreen else TextMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+                Box {
+                    IconButton(onClick = { showNodeMenu = true }, modifier = Modifier.size(32.dp).padding(top = 4.dp)) {
+                        Icon(Icons.Default.MoreVert, contentDescription = null, tint = TextMuted)
+                    }
+                    if (showNodeMenu) LumenMenu(expanded = true, onDismissRequest = { showNodeMenu = false }) {
+                        DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
+                            showNodeMenu = false; onEditNode(node)
+                        })
+                        DropdownMenuItem(text = { Text(strings.ping) }, onClick = {
+                            showNodeMenu = false; onPingNode(node)
+                        })
+                        DropdownMenuItem(text = { Text(strings.copyLink) }, onClick = {
+                            showNodeMenu = false; onCopyNodeLink(node)
+                        })
+                        DropdownMenuItem(text = { Text(strings.exportQrCode) }, onClick = {
+                            showNodeMenu = false; onExportQrCode(node)
+                        })
+                        DropdownMenuItem(text = { Text(strings.moveToGroup) }, onClick = {
+                            showNodeMenu = false; onMove(node)
+                        })
+                        DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
+                            showNodeMenu = false; onDeleteNode(node)
+                        })
+                    }
+                }
+            }
+        }
+    }
 }
