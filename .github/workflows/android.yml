@@ -1,7 +1,10 @@
-Name: Android Build
+name: Build Android Arm64 APK
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -9,26 +12,33 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
       - name: Setup Java JDK
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
 
       - name: Make gradlew executable
         run: |
           cd android
           chmod +x gradlew
 
-      - name: Build Android APK
+      - name: Build Android Release APK
         run: |
           cd android
           ./gradlew assembleRelease
 
-      - name: Upload APK Artifact
+      - name: Upload Arm64 APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BalochPing-APK
+          name: XPing-Pro-Arm64-Release
           path: android/app/build/outputs/apk/release/*.apk
-این نسخه عالیه
