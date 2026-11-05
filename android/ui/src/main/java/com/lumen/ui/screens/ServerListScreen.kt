@@ -368,49 +368,49 @@ fun ServerListScreen(
                                     }
                                 }
 
-                                activeSub.trafficRatio?.let { trafficRatio ->
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    val trafficText = activeSub.trafficSummary ?: "—"
-                                    val daysText = activeSub.expiryDaysLeft?.let { "$it ${strings.daysRemaining}" }
+                                // --- Always Visible Data Usage Block ---
+                                Spacer(modifier = Modifier.height(16.dp))
+                                val trafficText = activeSub.trafficSummary ?: "—"
+                                val daysText = activeSub.expiryDaysLeft?.let { "$it ${strings.daysRemaining}" } ?: "—"
+                                val ratio = activeSub.trafficRatio?.coerceIn(0f, 1f) ?: 0f
 
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(text = "DATA USAGE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                                        Text(text = trafficText, color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    val ratio = trafficRatio.coerceIn(0f, 1f)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = "DATA USAGE", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                    Text(text = trafficText, color = Color.White, fontSize = 11.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                                }
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(6.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(BgDark)
+                                ) {
                                     Box(
                                         modifier = Modifier
-                                            .fillMaxWidth()
+                                            .fillMaxWidth(ratio)
                                             .height(6.dp)
                                             .clip(RoundedCornerShape(8.dp))
-                                            .background(BgDark)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth(ratio)
-                                                .height(6.dp)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(CyberYellow)
-                                        )
-                                    }
-                                    if (daysText != null) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Text(
-                                            text = daysText,
-                                            fontSize = 11.sp,
-                                            color = CyberYellow,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            textAlign = TextAlign.End
-                                        )
-                                    }
+                                            .background(CyberYellow)
+                                    )
                                 }
+                                
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = daysText,
+                                    fontSize = 11.sp,
+                                    color = CyberYellow,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.End
+                                )
+
                                 if (hasProviderCard(activeSub)) {
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     SubscriptionProviderCard(activeSub, onOpenUrl, contentColor = CyberYellow)
                                 }
                             }
