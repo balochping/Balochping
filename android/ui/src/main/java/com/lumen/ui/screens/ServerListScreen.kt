@@ -51,13 +51,12 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
 
-// Cache for High Quality Rectangular Flags
+// Cache for High Quality Rectangular Flags from flagcdn
 private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 
 // === Premium Yellow Gaming Colors (X Ping Pro) ===
 private val CyberYellow = Color(0xFFFFD600)
 private val CyberYellowMuted = Color(0x33FFD600)
-private val NeonGreen = Color(0xFF00FF66)
 private val BgDark = Color(0xFF09090E)
 private val CardDark = Color(0xFF15151E)
 private val CardStroke = Color(0xFF252536)
@@ -687,10 +686,6 @@ private fun ServerListRow(
     val textPrimary = if (highlighted) CyberYellow else Color.White
     val textMuted = if (highlighted) Color.White.copy(alpha = 0.8f) else TextMuted
 
-    val flagEmoji = remember(node.countryCode) {
-        CountryFlagHelper.getServerFlagEmoji(node.countryCode)
-    }
-
     val pingMs = node.pingMs
     val unreachable = pingMs != null && pingMs <= 0 && !pinging
     val pingText = when {
@@ -720,37 +715,103 @@ private fun ServerListRow(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        
+        // --- Live Rectangular Flag Loader (Left Side) ---
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(BgDark)
-                .border(1.dp, CardStroke, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
+                .width(42.dp)
+                .height(28.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
         ) {
-            Text(
-                text = flagEmoji,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+            val countryCode = node.countryCode.trim().lowercase()
+            var flagBitmap by remember(countryCode) { mutableStateOf(flagMemoryCache[countryCode]) }
+            val flagEmoji = remember(countryCode) { CountryFlagHelper.getServerFlagEmoji(node.countryCode) }
+            
+            LaunchedEffect(countryCode) {
+                if (flagBitmap == null && countryCode.isNotBlank()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val url = URL("https://flagcdn.com/w80/$countryCode.png")
+                            val connection = url.openConnection() as HttpURLConnection
+                            connection.connectTimeout = 3000
+                            connection.readTimeout = 3000
+                            connection.doInput = true
+                            connection.connect()
+                            
+                            val input = connection.inputStream
+                            val bmp = BitmapFactory.decodeStream(input)
+                            if (bmp != null) {
+                                val imageBitmap = bmp.asImageBitmap()
+                                flagMemoryCache[countryCode] = imageBitmap
+                                flagBitmap = imageBitmap
+                            }
+                        } catch (e: Exception) {
+                            // If network fails, it gracefully ignores and falls back to emoji below
+                        }
+                    }
+                }
+            }
+
+            if (flagBitmap != null) {
+                Image(
+                    bitmap = flagBitmap!!,
+                    contentDescription = node.countryCode,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                // Fallback Emoji if no internet or still loading
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color(0xFF2A2A35)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = flagEmoji,
+                        fontSize = 18.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.width(14.dp))
 
+        // --- Server Info (Right Side) ---
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = node.name,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = textPrimary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = node.localizedProtocol(strings),
-                    style = MaterialTheme.typography.bodySmall, 
+                    text = node.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (highlighted) {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = strings.selected,
+                        tint = CyberYellow,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(if (highlighted) CyberYellow else TextMuted)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "PROTOCOL: ${node.localizedProtocol(strings).uppercase()}",
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold), 
                     color = textMuted,
                     maxLines = 1, 
                     overflow = TextOverflow.Ellipsis, 
@@ -769,42 +830,33 @@ private fun ServerListRow(
             }
         }
 
-        if (highlighted) {
-            Spacer(modifier = Modifier.width(10.dp))
-            Icon(
-                imageVector = Icons.Default.CheckCircle,
-                contentDescription = strings.selected,
-                tint = CyberYellow,
-                modifier = Modifier.size(24.dp)
-            )
-        } else {
-            Box {
-                IconButton(onClick = { showNodeMenu = true }, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.MoreVert, contentDescription = node.name, tint = TextMuted)
-                }
-                if (showNodeMenu) LumenMenu(expanded = true, onDismissRequest = { showNodeMenu = false }) {
-                    if (!node.isProtected) DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
-                        showNodeMenu = false; onEditNode(node)
-                    })
-                    DropdownMenuItem(text = { Text(strings.ping) }, onClick = {
-                        showNodeMenu = false; onPingNode(node)
-                    })
-                    if (!node.isProtected) DropdownMenuItem(text = { Text(strings.copyLink) }, onClick = {
-                        showNodeMenu = false; onCopyNodeLink(node)
-                    })
-                    if (!node.isProtected) DropdownMenuItem(
-                        text = { Text(LumenProfileText.EXPORT.inLanguage(strings.localeCode)) },
-                        onClick = { showNodeMenu = false; onExportLumen(node) })
-                    if (!node.isProtected) DropdownMenuItem(text = { Text(strings.exportQrCode) }, onClick = {
-                        showNodeMenu = false; onExportQrCode(node)
-                    })
-                    DropdownMenuItem(text = { Text(strings.moveToGroup) }, onClick = {
-                        showNodeMenu = false; onMove(node)
-                    })
-                    DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
-                        showNodeMenu = false; onDeleteNode(node)
-                    })
-                }
+        // --- Context Menu Button ---
+        Box {
+            IconButton(onClick = { showNodeMenu = true }, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.MoreVert, contentDescription = node.name, tint = TextMuted)
+            }
+            if (showNodeMenu) LumenMenu(expanded = true, onDismissRequest = { showNodeMenu = false }) {
+                if (!node.isProtected) DropdownMenuItem(text = { Text(strings.edit) }, onClick = {
+                    showNodeMenu = false; onEditNode(node)
+                })
+                DropdownMenuItem(text = { Text(strings.ping) }, onClick = {
+                    showNodeMenu = false; onPingNode(node)
+                })
+                if (!node.isProtected) DropdownMenuItem(text = { Text(strings.copyLink) }, onClick = {
+                    showNodeMenu = false; onCopyNodeLink(node)
+                })
+                if (!node.isProtected) DropdownMenuItem(
+                    text = { Text(LumenProfileText.EXPORT.inLanguage(strings.localeCode)) },
+                    onClick = { showNodeMenu = false; onExportLumen(node) })
+                if (!node.isProtected) DropdownMenuItem(text = { Text(strings.exportQrCode) }, onClick = {
+                    showNodeMenu = false; onExportQrCode(node)
+                })
+                DropdownMenuItem(text = { Text(strings.moveToGroup) }, onClick = {
+                    showNodeMenu = false; onMove(node)
+                })
+                DropdownMenuItem(text = { Text(strings.delete) }, onClick = {
+                    showNodeMenu = false; onDeleteNode(node)
+                })
             }
         }
     }
