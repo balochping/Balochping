@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,10 +49,8 @@ import com.lumen.ui.theme.*
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 
-// Cache for High Quality Rectangular Flags from flagcdn
+// Cache for High Quality Rectangular Flags
 private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 
 // === Premium Yellow Gaming Colors (X Ping Pro) ===
@@ -666,6 +665,7 @@ private fun ServerListRow(
     modifier: Modifier = Modifier
 ) {
     val strings = LocalStrings.current
+    val context = LocalContext.current
     var showNodeMenu by remember(node.id) { mutableStateOf(false) }
     
     val isSelected = node.isSelected
@@ -716,7 +716,7 @@ private fun ServerListRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         
-        // --- Live Rectangular Flag Loader (Left Side) ---
+        // --- Native Rectangular Flag Layout (Left Side) ---
         Box(
             modifier = Modifier
                 .width(42.dp)
@@ -724,55 +724,42 @@ private fun ServerListRow(
                 .clip(RoundedCornerShape(4.dp))
                 .border(0.5.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
         ) {
-            val countryCode = node.countryCode.trim().lowercase()
-            var flagBitmap by remember(countryCode) { mutableStateOf(flagMemoryCache[countryCode]) }
-            val flagEmoji = remember(countryCode) { CountryFlagHelper.getServerFlagEmoji(node.countryCode) }
+            val resourceId = remember(node.countryCode) {
+                CountryFlagHelper.getFlagResourceStrict(node.countryCode)
+            }
             
-            LaunchedEffect(countryCode) {
-                if (flagBitmap == null && countryCode.isNotBlank()) {
-                    withContext(Dispatchers.IO) {
-                        try {
-                            val url = URL("https://flagcdn.com/w80/$countryCode.png")
-                            val connection = url.openConnection() as HttpURLConnection
-                            connection.connectTimeout = 3000
-                            connection.readTimeout = 3000
-                            connection.doInput = true
-                            connection.connect()
-                            
-                            val input = connection.inputStream
-                            val bmp = BitmapFactory.decodeStream(input)
-                            if (bmp != null) {
-                                val imageBitmap = bmp.asImageBitmap()
-                                flagMemoryCache[countryCode] = imageBitmap
-                                flagBitmap = imageBitmap
+            if (resourceId != 0) {
+                var flagBitmap by remember(resourceId) { mutableStateOf<ImageBitmap?>(null) }
+                LaunchedEffect(resourceId) {
+                    flagBitmap = flagMemoryCache[node.countryCode]
+                    if (flagBitmap == null) {
+                        withContext(Dispatchers.IO) {
+                            val opts = BitmapFactory.Options().apply {
+                                inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
                             }
-                        } catch (e: Exception) {
-                            // If network fails, it gracefully ignores and falls back to emoji below
+                            val bmp = BitmapFactory.decodeResource(context.resources, resourceId, opts)
+                            if (bmp != null) {
+                                val ib = bmp.asImageBitmap()
+                                flagMemoryCache[node.countryCode] = ib
+                                flagBitmap = ib
+                            }
                         }
                     }
                 }
-            }
-
-            if (flagBitmap != null) {
-                Image(
-                    bitmap = flagBitmap!!,
-                    contentDescription = node.countryCode,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+                flagBitmap?.let { bmp ->
+                    Image(
+                        bitmap = bmp,
+                        contentDescription = node.countryCode,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } ?: Box(modifier = Modifier.fillMaxSize().background(Color.Transparent))
             } else {
-                // Fallback Emoji if no internet or still loading
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color(0xFF2A2A35)),
+                    modifier = Modifier.fillMaxSize().background(Color.Transparent),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = flagEmoji,
-                        fontSize = 18.sp,
-                        textAlign = TextAlign.Center
-                    )
+                    Text("?", color = Color.White, fontSize = 14.sp)
                 }
             }
         }
