@@ -1,7 +1,10 @@
-name: Android Build
+name: Build Android Arm64
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -26,8 +29,8 @@ jobs:
           cd android
           ./gradlew assembleRelease
 
-      - name: Upload APK Artifact
+      - name: Upload Arm64 APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BalochPing-APK
-          path: android/app/build/outputs/apk/release/*.apk
+          name: BalochPing-Arm64
+          path: android/app/build/outputs/apk/release/*arm64-v8a-release*.apk
