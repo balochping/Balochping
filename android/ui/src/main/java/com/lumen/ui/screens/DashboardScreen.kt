@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.PlayArrow
@@ -489,13 +488,13 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PremiumStat(title = "⚡ Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
+        PremiumStat(title = "Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "〽️ Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
+        PremiumStat(title = "Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "🛡️ Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
+        PremiumStat(title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "⬇️ Speed", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
+        PremiumStat(title = "Speed", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
     }
 }
 
@@ -636,7 +635,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Check, 
+                        imageVector = Icons.Default.CheckCircle, 
                         contentDescription = null, 
                         tint = NeonGreen, 
                         modifier = Modifier.size(18.dp)
