@@ -32,6 +32,9 @@ import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.WifiTethering
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -56,10 +59,13 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.lumen.ui.components.AddServerSheet
@@ -77,7 +83,6 @@ import java.util.Locale
 
 // Cache for Game Posters
 private val posterMemoryCache = mutableMapOf<String, ImageBitmap>()
-
 // Cache for High Quality Rectangular Flags from flagcdn
 private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 
@@ -85,6 +90,7 @@ private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 private val CyberYellow = Color(0xFFFFD600) 
 private val NeonGreen = Color(0xFF00FF66) 
 private val CyberPurple = Color(0xFFB026FF) 
+private val CyberPurpleDark = Color(0xFF5A189A)
 private val BgDark = Color(0xFF09090E)
 private val CardDark = Color(0xFF15151E)
 private val CardStroke = Color(0xFF252536)
@@ -154,9 +160,9 @@ fun DashboardScreen(
     val scrollState = rememberScrollState()
 
     val bgBrush = Brush.radialGradient(
-        colors = listOf(Color(0xFF2A1C00), BgDark),
-        center = Offset(500f, 0f),
-        radius = 1600f
+        colors = listOf(CyberPurpleDark.copy(alpha = 0.25f), BgDark),
+        center = Offset(800f, 0f),
+        radius = 1800f
     )
 
     Column(
@@ -188,9 +194,9 @@ fun DashboardScreen(
 
                     if (speedStatsEnabled) {
                         val basePingValue = connectedPing ?: activeNode?.pingMs?.takeIf { it > 0 }?.toString()
-                        val dlSpeed = if (isConnected) formatSpeedToMbps(speedValues().download) else "0.00"
+                        val dlSpeed = if (isConnected) formatSpeedToMbps(speedValues().download) else "0"
                         PremiumStatsBar(basePing = basePingValue, dlSpeed = dlSpeed, isConnected = isConnected)
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(28.dp))
                     }
 
                     GameBoostSection(selectedGameId = "pubg")
@@ -202,20 +208,25 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Layers, contentDescription=null, tint=CyberYellow, modifier=Modifier.size(16.dp))
+                            Icon(Icons.Default.Layers, contentDescription=null, tint=CyberPurple, modifier=Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(text = "SELECTED SERVER", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            Text(text = "Server", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color.White)
                         }
-                        TextButton(
-                            onClick = openServerPicker,
+                        Row(
                             modifier = Modifier
-                                .height(36.dp)
-                                .expressiveButtonSemantics(strings.changeServer, openServerPicker)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(CardDark)
+                                .border(1.dp, NeonGreen.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .clickable(onClick = openServerPicker)
+                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "Change", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CyberYellow)
+                            Icon(Icons.Default.Bolt, contentDescription=null, tint=NeonGreen, modifier=Modifier.size(14.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text(text = "Auto Select", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     if (activeNode != null) {
                         val serverShape = RoundedCornerShape(20.dp)
@@ -225,7 +236,11 @@ fun DashboardScreen(
                                 .fillMaxWidth()
                                 .clip(serverShape)
                                 .background(CardDark)
-                                .border(1.5.dp, if(isConnected) CyberYellow.copy(alpha=0.5f) else CardStroke, serverShape)
+                                .border(
+                                    width = if(isConnected) 2.dp else 1.dp, 
+                                    brush = Brush.horizontalGradient(listOf(NeonGreen, CyberPurple)), 
+                                    shape = serverShape
+                                )
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = openServerPicker)
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
@@ -284,12 +299,12 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(Modifier.size(6.dp).clip(CircleShape).background(if(isConnected) CyberYellow else TextMuted))
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(text = "Protocol: ${activeNode.displayProtocol}", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
+                                    Icon(Icons.Default.Shield, contentDescription=null, tint=TextMuted, modifier=Modifier.size(12.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(text = activeNode.displayProtocol, fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                                 }
                             }
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.changeServer, tint = if(isConnected) CyberYellow else Color.White, modifier = Modifier.size(24.dp))
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.changeServer, tint = if(isConnected) NeonGreen else Color.White, modifier = Modifier.size(24.dp))
                         }
                     } else {
                         Box(
@@ -334,7 +349,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
     val mainColor = if (isConnected) CyberYellow else TextMuted
     val statusText = when {
         isConnecting -> "Optimizing\nNetwork..."
-        isConnected -> "Gaming Boost\nActive >>"
+        isConnected -> "Gaming Mode\nActive >>"
         else -> "Ready to\nBoost"
     }
 
@@ -356,51 +371,86 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(mainColor.copy(alpha = 0.1f))
+                    .background(if(isConnected) NeonGreen.copy(alpha = 0.15f) else TextMuted.copy(alpha = 0.15f))
+                    .border(1.dp, if(isConnected) NeonGreen else TextMuted, RoundedCornerShape(6.dp))
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Shield, contentDescription = null, tint = mainColor, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Shield, contentDescription = null, tint = if(isConnected) NeonGreen else TextMuted, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(if(isConnected) "Secured Connection" else "Not Connected", color = mainColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(if(isConnected) "Protected" else "Not Connected", color = if(isConnected) NeonGreen else TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(14.dp))
+            
+            val statusAnnotated = buildAnnotatedString {
+                withStyle(style = SpanStyle(color = Color.White)) {
+                    append(if(isConnecting) "Optimizing\n" else if(isConnected) "Gaming Mode\n" else "Ready to\n")
+                }
+                withStyle(style = SpanStyle(color = if(isConnected) NeonGreen else TextMuted)) {
+                    append(if(isConnected) "Active >>" else if(isConnecting) "Network..." else "Boost >>")
+                }
+            }
+            
             Text(
-                text = statusText,
-                color = Color.White,
+                text = statusAnnotated,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Black,
                 lineHeight = 32.sp
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text("WireGuard Low-Latency Routing", color = TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text("Ultra Low Ping\nfor the Best Experience", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp)
         }
 
         Box(
             modifier = Modifier
-                .size(130.dp)
+                .size(150.dp)
                 .graphicsLayer { scaleX = orbScale.value; scaleY = orbScale.value }
                 .clickable(onClick = onOrbitClick),
             contentAlignment = Alignment.Center
         ) {
             val shape = CircleShape 
+            
             if (isConnected || isConnecting) {
-                Box(modifier = Modifier.size(130.dp).clip(shape).border(1.dp, mainColor.copy(alpha = 0.3f), shape))
-                Box(modifier = Modifier.size(110.dp).clip(shape).background(mainColor.copy(alpha = 0.1f)))
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .drawBehind {
+                            drawIntoCanvas { canvas ->
+                                val composePaint = androidx.compose.ui.graphics.Paint().apply {
+                                    color = CyberPurple.copy(alpha = 0.5f)
+                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(40f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                                }
+                                canvas.drawCircle(center, size.width / 2, composePaint)
+                            }
+                        }
+                        .border(3.dp, CyberPurple, shape)
+                )
             }
+            
             Box(
                 modifier = Modifier
-                    .size(90.dp)
+                    .size(110.dp)
                     .clip(shape)
-                    .background(if (isConnected) CyberYellow else CardDark)
-                    .border(2.dp, if (isConnected) CyberYellow else CardStroke, shape),
+                    .background(BgDark)
+                    .border(4.dp, if(isConnected) NeonGreen else CardStroke, shape)
+                    .drawBehind {
+                        if (isConnected) {
+                            drawIntoCanvas { canvas ->
+                                val composePaint = androidx.compose.ui.graphics.Paint().apply {
+                                    color = NeonGreen.copy(alpha = 0.6f)
+                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(20f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                                }
+                                canvas.drawCircle(center, size.width / 2, composePaint)
+                            }
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 if (isConnecting) {
-                    CircularProgressIndicator(color = mainColor, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
+                    CircularProgressIndicator(color = NeonGreen, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
                 } else {
-                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = if (isConnected) BgDark else Color.White, modifier = Modifier.size(36.dp))
+                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = if (isConnected) NeonGreen else Color.White, modifier = Modifier.size(42.dp))
                 }
             }
         }
@@ -431,7 +481,6 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
         }
     }
 
-    val borderColor = if(isConnected) CyberYellow.copy(alpha=0.4f) else CardStroke
     val barShape = RoundedCornerShape(16.dp)
     
     Row(
@@ -439,55 +488,62 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
             .fillMaxWidth()
             .clip(barShape)
             .background(CardDark)
-            .border(1.dp, borderColor, barShape)
-            .padding(vertical = 18.dp, horizontal = 20.dp),
+            .border(
+                width = 1.5.dp, 
+                brush = Brush.horizontalGradient(listOf(if(isConnected) NeonGreen else CardStroke, if(isConnected) CyberPurple else CardStroke)), 
+                shape = barShape
+            )
+            .padding(vertical = 16.dp, horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PremiumStat(title = "Ping", value = livePing, unit = "ms", color = if(isConnected) Color.White else TextMuted)
-        Box(modifier = Modifier.width(1.dp).height(30.dp).background(CardStroke)) 
-        PremiumStat(title = "Jitter", value = liveJitter, unit = "ms", color = if(isConnected) Color.White else TextMuted)
-        Box(modifier = Modifier.width(1.dp).height(30.dp).background(CardStroke)) 
-        PremiumStat(title = "Loss", value = liveLoss, unit = "%", color = if(isConnected) Color.White else TextMuted)
-        Box(modifier = Modifier.width(1.dp).height(30.dp).background(CardStroke)) 
-        PremiumStat(title = "Speed", value = if(isConnected) dlSpeed else "--", unit = "Mb", color = if(isConnected) Color.White else TextMuted)
+        PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
+        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
+        PremiumStat(icon = Icons.Default.Timeline, title = "Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
+        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
+        PremiumStat(icon = Icons.Default.Shield, title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
+        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
+        PremiumStat(icon = Icons.Default.Download, title = "Download", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
     }
 }
 
 @Composable
-private fun PremiumStat(title: String, value: String, unit: String, color: Color) {
+private fun PremiumStat(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String, unit: String, status: String, isConnected: Boolean) {
+    val mainColor = if(isConnected) NeonGreen else Color.White
+    
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(title, color = TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-        Spacer(modifier = Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = TextMuted, modifier = Modifier.size(12.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(title, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        }
+        Spacer(modifier = Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(value, color = color, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text(value, color = mainColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
             Spacer(modifier = Modifier.width(2.dp))
-            Text(unit, color = TextMuted, fontSize = 11.sp, modifier = Modifier.padding(bottom=3.dp))
+            Text(unit, color = mainColor, fontSize = 10.sp, modifier = Modifier.padding(bottom=3.dp))
+        }
+        if (isConnected) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(10.dp))
+                Spacer(modifier = Modifier.width(2.dp))
+                Text(status, color = NeonGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
 
 internal fun formatSpeedToMbps(bytesPerSecond: Long): String {
     val mbps = (bytesPerSecond * 8.0) / 1_000_000.0
-    return if (mbps > 0) String.format(Locale.US, "%.2f", mbps) else "0.00"
-}
-
-internal fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
-    val speed = bytesPerSecond.coerceAtLeast(0L).toDouble()
-    val (value, unit) = when {
-        speed >= 1024.0 * 1024.0 * 1024.0 -> speed / (1024.0 * 1024.0 * 1024.0) to "GB/s"
-        speed >= 1024.0 * 1024.0 -> speed / (1024.0 * 1024.0) to "MB/s"
-        speed >= 1024.0 -> speed / 1024.0 to "KB/s"
-        else -> speed to "B/s"
-    }
-    return (if (value < 10.0 && speed >= 1024.0) String.format(Locale.getDefault(), "%.1f", value)
-    else String.format(Locale.getDefault(), "%.0f", value)) to unit
+    return if (mbps > 0) String.format(Locale.US, "%.0f", mbps) else "0"
 }
 
 data class BoostGame(val id: String, val name: String, val posterUrl: String, val isHot: Boolean = false)
 
 @Composable
 fun GameBoostSection(modifier: Modifier = Modifier, selectedGameId: String = "pubg", onGameSelect: (String) -> Unit = {}) {
+    // === اگه عکس‌های کاستومِ طراح رو داشتی، لینک‌هاشون رو دقیقاً همین‌جا به جای لینک‌های استیم جایگزین کن ===
     val games = remember {
         listOf(
             BoostGame("pubg", "PUBG MOBILE", "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/578080/library_600x900.jpg", true),
@@ -567,18 +623,20 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             Image(bitmap = posterBitmap!!, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         
+        // === فیلتر فتوشاپی رنگ بنفش و تاریک روی تمام عکس‌ها ===
         Box(Modifier.fillMaxSize().background(
             Brush.verticalGradient(
                 colors = listOf(
-                    CyberPurple.copy(alpha = 0.15f),
+                    CyberPurple.copy(alpha = 0.4f), // هاله بنفش از بالا
                     Color.Transparent,
-                    Color.Black.copy(alpha = 0.95f)
+                    Color.Black.copy(alpha = 0.95f) // مشکی تاریک برای خوانایی متن
                 )
             )
         ))
 
+        // تاریک‌تر کردن عکس‌هایی که انتخاب نشدن
         if (!isSelected) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         }
         
         if (isSelected) {
