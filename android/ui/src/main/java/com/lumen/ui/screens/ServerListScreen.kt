@@ -1,9 +1,11 @@
 package com.lumen.ui.screens
 
+import android.graphics.BitmapFactory
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,7 +30,12 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +46,14 @@ import androidx.compose.ui.unit.sp
 
 import com.lumen.ui.components.*
 import com.lumen.ui.theme.*
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
+
+// Cache for High Quality Rectangular Flags from flagcdn
+private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 
 // === Premium Yellow Gaming Colors (X Ping Pro) ===
 private val CyberYellow = Color(0xFFFFD600)
@@ -652,6 +667,7 @@ private fun ServerListRow(
     modifier: Modifier = Modifier
 ) {
     val strings = LocalStrings.current
+    val context = LocalContext.current
     var showNodeMenu by remember(node.id) { mutableStateOf(false) }
     
     val isSelected = node.isSelected
@@ -702,15 +718,58 @@ private fun ServerListRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         
-        // --- Native Flat Flag Emoji (No Box!) ---
-        val flagEmoji = remember(node.countryCode) {
-            CountryFlagHelper.getServerFlagEmoji(node.countryCode)
+        // --- Live Rectangular Flag Loader (Left Side) - Fully Flat, No Background Box ---
+        Box(
+            modifier = Modifier
+                .width(42.dp)
+                .height(28.dp)
+        ) {
+            val countryCode = node.countryCode.trim().lowercase()
+            var flagBitmap by remember(countryCode) { mutableStateOf(flagMemoryCache[countryCode]) }
+            val flagEmoji = remember(countryCode) { CountryFlagHelper.getServerFlagEmoji(node.countryCode) }
+            
+            LaunchedEffect(countryCode) {
+                if (flagBitmap == null && countryCode.isNotBlank()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val url = URL("https://flagcdn.com/w80/$countryCode.png")
+                            val connection = url.openConnection() as HttpURLConnection
+                            connection.connectTimeout = 3000
+                            connection.readTimeout = 3000
+                            connection.doInput = true
+                            connection.connect()
+                            
+                            val input = connection.inputStream
+                            val bmp = BitmapFactory.decodeStream(input)
+                            if (bmp != null) {
+                                val imageBitmap = bmp.asImageBitmap()
+                                flagMemoryCache[countryCode] = imageBitmap
+                                flagBitmap = imageBitmap
+                            }
+                        } catch (e: Exception) {
+                            // Silently fail if offline, fallback to emoji
+                        }
+                    }
+                }
+            }
+
+            if (flagBitmap != null) {
+                Image(
+                    bitmap = flagBitmap!!,
+                    contentDescription = node.countryCode,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(4.dp))
+                )
+            } else {
+                Text(
+                    text = flagEmoji,
+                    fontSize = 24.sp,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
         }
-        Text(
-            text = flagEmoji,
-            fontSize = 28.sp,
-            modifier = Modifier.padding(end = 14.dp)
-        )
+
+        Spacer(modifier = Modifier.width(14.dp))
 
         // --- Server Info (Right Side) ---
         Column(modifier = Modifier.weight(1f)) {
