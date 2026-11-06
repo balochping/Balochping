@@ -1,74 +1,29 @@
 package com.lumen.ui.screens
 
 import android.graphics.BitmapFactory
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.draw.*
+import androidx.compose.ui.geometry.*
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.lumen.ui.components.AddServerSheet
-import com.lumen.ui.components.expressiveButtonSemantics
-import com.lumen.ui.components.BrandTopBar
-import com.lumen.ui.components.ConnectionState
-import com.lumen.ui.components.CountryFlagHelper
+import androidx.compose.ui.text.*
+import androidx.compose.ui.text.font.*
+import androidx.compose.ui.text.style.*
+import androidx.compose.ui.unit.*
+import com.lumen.ui.components.*
+import com.lumen.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -488,13 +443,13 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PremiumStat(title = "Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
+        PremiumStat(title = "⚡ Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
+        PremiumStat(title = "〽️ Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
+        PremiumStat(title = "🛡️ Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "Speed", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
+        PremiumStat(title = "⬇️ Speed", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
     }
 }
 
@@ -547,7 +502,7 @@ fun GameBoostSection(modifier: Modifier = Modifier, selectedGameId: String = "pu
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
+                Text("🎮", fontSize = 18.sp)
                 Spacer(Modifier.width(8.dp))
                 Text("Select Your Game", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
@@ -635,7 +590,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Default.CheckCircle, 
+                        imageVector = Icons.Default.Check, 
                         contentDescription = null, 
                         tint = NeonGreen, 
                         modifier = Modifier.size(18.dp)
