@@ -74,6 +74,9 @@ import java.util.Locale
 // Cache for Game Posters
 private val posterMemoryCache = mutableMapOf<String, ImageBitmap>()
 
+// Cache for High Quality Rectangular Flags from flagcdn
+private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
+
 // === Premium Yellow Gaming Colors ===
 private val CyberYellow = Color(0xFFFFD600) // زرد درخشان گیمینگ
 private val BgDark = Color(0xFF09090E)
@@ -210,7 +213,6 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     if (activeNode != null) {
-                        val flagEmoji = CountryFlagHelper.getServerFlagEmoji(activeNode.countryCode)
                         val serverShape = RoundedCornerShape(20.dp)
                         
                         Row(
@@ -223,15 +225,55 @@ fun DashboardScreen(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // --- Live Rectangular Flag Loader (Left Side) - Fully Flat, No Background Box ---
                             Box(
                                 modifier = Modifier
-                                    .size(46.dp)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(BgDark)
-                                    .border(1.dp, CardStroke, RoundedCornerShape(12.dp)),
-                                contentAlignment = Alignment.Center
+                                    .width(42.dp)
+                                    .height(28.dp)
                             ) {
-                                Text(text = flagEmoji, fontSize = 22.sp)
+                                val countryCode = activeNode.countryCode.trim().lowercase()
+                                var flagBitmap by remember(countryCode) { mutableStateOf(flagMemoryCache[countryCode]) }
+                                val flagEmoji = remember(countryCode) { CountryFlagHelper.getServerFlagEmoji(activeNode.countryCode) }
+                                
+                                LaunchedEffect(countryCode) {
+                                    if (flagBitmap == null && countryCode.isNotBlank()) {
+                                        withContext(Dispatchers.IO) {
+                                            try {
+                                                val url = URL("https://flagcdn.com/w80/$countryCode.png")
+                                                val connection = url.openConnection() as HttpURLConnection
+                                                connection.connectTimeout = 3000
+                                                connection.readTimeout = 3000
+                                                connection.doInput = true
+                                                connection.connect()
+                                                
+                                                val input = connection.inputStream
+                                                val bmp = BitmapFactory.decodeStream(input)
+                                                if (bmp != null) {
+                                                    val imageBitmap = bmp.asImageBitmap()
+                                                    flagMemoryCache[countryCode] = imageBitmap
+                                                    flagBitmap = imageBitmap
+                                                }
+                                            } catch (e: Exception) {
+                                                // Silently fail if offline, fallback to emoji
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (flagBitmap != null) {
+                                    Image(
+                                        bitmap = flagBitmap!!,
+                                        contentDescription = activeNode.countryCode,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(4.dp))
+                                    )
+                                } else {
+                                    Text(
+                                        text = flagEmoji,
+                                        fontSize = 24.sp,
+                                        modifier = Modifier.align(Alignment.Center)
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(14.dp))
                             Column(modifier = Modifier.weight(1f)) {
