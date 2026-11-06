@@ -1,4 +1,3 @@
-
 package com.lumen.ui.screens
 
 import android.graphics.BitmapFactory
@@ -55,7 +54,6 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
@@ -490,7 +488,6 @@ data class BoostGame(val id: String, val name: String, val posterUrl: String, va
 
 @Composable
 fun GameBoostSection(modifier: Modifier = Modifier, selectedGameId: String = "pubg", onGameSelect: (String) -> Unit = {}) {
-    // === این قسمت رو هر وقت خواستی می‌تونی با لینک عکس‌های خودت عوض کنی ===
     val games = remember {
         listOf(
             BoostGame("pubg", "PUBG MOBILE", "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/578080/library_600x900.jpg", true),
@@ -552,11 +549,11 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                 if (isSelected) {
                     Modifier.drawBehind {
                         drawIntoCanvas { canvas ->
-                            val paint = androidx.compose.ui.graphics.Paint().asFrameworkPaint().apply {
-                                color = NeonGreen.copy(alpha = 0.55f).toArgb()
-                                maskFilter = android.graphics.BlurMaskFilter(45f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                            val composePaint = androidx.compose.ui.graphics.Paint().apply {
+                                color = NeonGreen.copy(alpha = 0.55f)
+                                asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(45f, android.graphics.BlurMaskFilter.Blur.NORMAL)
                             }
-                            canvas.drawRoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx(), paint)
+                            canvas.drawRoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx(), composePaint)
                         }
                     }
                 } else Modifier
@@ -570,7 +567,6 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             Image(bitmap = posterBitmap!!, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         
-        // Cyberpunk Filter Overlay (تاریک کردن و اضافه کردن رنگ بنفش سایبری به همه عکس‌ها)
         Box(Modifier.fillMaxSize().background(
             Brush.verticalGradient(
                 colors = listOf(
@@ -581,13 +577,11 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             )
         ))
 
-        // Dimming effect for unselected games (تاریک‌تر کردن بازی‌های انتخاب نشده)
         if (!isSelected) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
         }
         
         if (isSelected) {
-            // تیک تایید سفید و سبز
             Box(
                 modifier = Modifier.fillMaxWidth().padding(8.dp), 
                 contentAlignment = Alignment.TopEnd
@@ -622,7 +616,6 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             )
             Spacer(Modifier.height(8.dp))
             
-            // Glowing Optimized Pill
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
