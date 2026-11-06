@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
 import androidx.compose.ui.geometry.*
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.*
@@ -255,7 +255,8 @@ fun DashboardScreen(
                                     Text(text = activeNode.displayProtocol, fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                                 }
                             }
-                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.changeServer, tint = if(isConnected) NeonGreen else Color.White, modifier = Modifier.size(24.dp))
+                            // فیکس ارور: استفاده از آیکون استاندارد به جای automirrored
+                            Icon(Icons.Default.KeyboardArrowRight, contentDescription = strings.changeServer, tint = if(isConnected) NeonGreen else Color.White, modifier = Modifier.size(24.dp))
                         }
                     } else {
                         Box(
@@ -635,3 +636,19 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         }
     }
 }
+
+// ==========================================
+// Added back missing Enums and Data Classes 
+// that might have been deleted during replacement
+// ==========================================
+
+enum class DashboardStyle {
+    DEFAULT,
+    SLIDER
+}
+
+data class DashboardSpeeds(
+    val download: Long = 0L,
+    val upload: Long = 0L
+)
+
