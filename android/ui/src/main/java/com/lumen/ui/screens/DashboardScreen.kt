@@ -27,14 +27,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.VideogameAsset
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.WifiTethering
-import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -50,12 +47,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -221,7 +218,7 @@ fun DashboardScreen(
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Bolt, contentDescription=null, tint=NeonGreen, modifier=Modifier.size(14.dp))
+                            Text(text = "⚡", fontSize = 10.sp, color = NeonGreen)
                             Spacer(Modifier.width(4.dp))
                             Text(text = "Auto Select", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
                         }
@@ -347,12 +344,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
     val orbScale = remember { Animatable(1f) }
 
     val mainColor = if (isConnected) CyberYellow else TextMuted
-    val statusText = when {
-        isConnecting -> "Optimizing\nNetwork..."
-        isConnected -> "Gaming Mode\nActive >>"
-        else -> "Ready to\nBoost"
-    }
-
+    
     val onOrbitClick: () -> Unit = {
         scope.launch {
             orbScale.snapTo(0.88f)
@@ -416,13 +408,13 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                     modifier = Modifier
                         .size(140.dp)
                         .drawBehind {
-                            drawIntoCanvas { canvas ->
-                                val composePaint = androidx.compose.ui.graphics.Paint().apply {
-                                    color = CyberPurple.copy(alpha = 0.5f)
-                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(40f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-                                }
-                                canvas.drawCircle(center, size.width / 2, composePaint)
-                            }
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(CyberPurple.copy(alpha = 0.5f), Color.Transparent),
+                                    center = center,
+                                    radius = size.width / 1.5f
+                                )
+                            )
                         }
                         .border(3.dp, CyberPurple, shape)
                 )
@@ -436,13 +428,13 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                     .border(4.dp, if(isConnected) NeonGreen else CardStroke, shape)
                     .drawBehind {
                         if (isConnected) {
-                            drawIntoCanvas { canvas ->
-                                val composePaint = androidx.compose.ui.graphics.Paint().apply {
-                                    color = NeonGreen.copy(alpha = 0.6f)
-                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(20f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-                                }
-                                canvas.drawCircle(center, size.width / 2, composePaint)
-                            }
+                            drawCircle(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(NeonGreen.copy(alpha = 0.6f), Color.Transparent),
+                                    center = center,
+                                    radius = size.width / 1.5f
+                                )
+                            )
                         }
                     },
                 contentAlignment = Alignment.Center
@@ -497,26 +489,22 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
+        PremiumStat(title = "⚡ Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(icon = Icons.Default.Timeline, title = "Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
+        PremiumStat(title = "〽️ Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(icon = Icons.Default.Shield, title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
+        PremiumStat(title = "🛡️ Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(icon = Icons.Default.Download, title = "Download", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
+        PremiumStat(title = "⬇️ Speed", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
     }
 }
 
 @Composable
-private fun PremiumStat(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String, unit: String, status: String, isConnected: Boolean) {
+private fun PremiumStat(title: String, value: String, unit: String, status: String, isConnected: Boolean) {
     val mainColor = if(isConnected) NeonGreen else Color.White
     
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = TextMuted, modifier = Modifier.size(12.dp))
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(title, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-        }
+        Text(title, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         Spacer(modifier = Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(value, color = mainColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
@@ -543,7 +531,6 @@ data class BoostGame(val id: String, val name: String, val posterUrl: String, va
 
 @Composable
 fun GameBoostSection(modifier: Modifier = Modifier, selectedGameId: String = "pubg", onGameSelect: (String) -> Unit = {}) {
-    // === اگه عکس‌های کاستومِ طراح رو داشتی، لینک‌هاشون رو دقیقاً همین‌جا به جای لینک‌های استیم جایگزین کن ===
     val games = remember {
         listOf(
             BoostGame("pubg", "PUBG MOBILE", "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/578080/library_600x900.jpg", true),
@@ -561,7 +548,7 @@ fun GameBoostSection(modifier: Modifier = Modifier, selectedGameId: String = "pu
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.VideogameAsset, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
+                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Select Your Game", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
@@ -604,13 +591,14 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             .then(
                 if (isSelected) {
                     Modifier.drawBehind {
-                        drawIntoCanvas { canvas ->
-                            val composePaint = androidx.compose.ui.graphics.Paint().apply {
-                                color = NeonGreen.copy(alpha = 0.55f)
-                                asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(45f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-                            }
-                            canvas.drawRoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx(), composePaint)
-                        }
+                        drawRoundRect(
+                            brush = Brush.radialGradient(
+                                colors = listOf(NeonGreen.copy(alpha = 0.6f), Color.Transparent),
+                                center = center,
+                                radius = size.width
+                            ),
+                            cornerRadius = CornerRadius(16.dp.toPx(), 16.dp.toPx())
+                        )
                     }
                 } else Modifier
             )
@@ -623,18 +611,17 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             Image(bitmap = posterBitmap!!, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         
-        // === فیلتر فتوشاپی رنگ بنفش و تاریک روی تمام عکس‌ها ===
+        // Cyberpunk Purple Gradient Filter
         Box(Modifier.fillMaxSize().background(
             Brush.verticalGradient(
                 colors = listOf(
-                    CyberPurple.copy(alpha = 0.4f), // هاله بنفش از بالا
+                    CyberPurple.copy(alpha = 0.4f), 
                     Color.Transparent,
-                    Color.Black.copy(alpha = 0.95f) // مشکی تاریک برای خوانایی متن
+                    Color.Black.copy(alpha = 0.95f) 
                 )
             )
         ))
 
-        // تاریک‌تر کردن عکس‌هایی که انتخاب نشدن
         if (!isSelected) {
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         }
@@ -682,12 +669,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    Icons.Default.Bolt, 
-                    contentDescription = null, 
-                    tint = if(isSelected) NeonGreen else TextMuted, 
-                    modifier = Modifier.size(14.dp)
-                )
+                Text(text = "⚡", fontSize = 9.sp)
                 Spacer(Modifier.width(2.dp))
                 Text(
                     text = "Optimized", 
