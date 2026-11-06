@@ -28,9 +28,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PowerSettingsNew
 import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -45,6 +46,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -53,6 +55,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,8 +80,10 @@ private val posterMemoryCache = mutableMapOf<String, ImageBitmap>()
 // Cache for High Quality Rectangular Flags from flagcdn
 private val flagMemoryCache = mutableMapOf<String, ImageBitmap>()
 
-// === Premium Yellow Gaming Colors ===
-private val CyberYellow = Color(0xFFFFD600) // زرد درخشان گیمینگ
+// === Premium Yellow & Neon Gaming Colors (X Ping Pro) ===
+private val CyberYellow = Color(0xFFFFD600) 
+private val NeonGreen = Color(0xFF00FF66) // سبز نئونی برای کارت بازی‌ها
+private val CyberPurple = Color(0xFFB026FF) // بنفش سایبری
 private val BgDark = Color(0xFF09090E)
 private val CardDark = Color(0xFF15151E)
 private val CardStroke = Color(0xFF252536)
@@ -147,7 +152,6 @@ fun DashboardScreen(
     val isConnected = connectionState == ConnectionState.Connected
     val scrollState = rememberScrollState()
 
-    // پس‌زمینه با هاله تاریک و گرم کهربایی/زرد
     val bgBrush = Brush.radialGradient(
         colors = listOf(Color(0xFF2A1C00), BgDark),
         center = Offset(500f, 0f),
@@ -188,6 +192,7 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                     }
 
+                    // فراخوانی بخش جدید و خفن کارت بازی‌ها
                     GameBoostSection(selectedGameId = "pubg")
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -225,7 +230,7 @@ fun DashboardScreen(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // --- Live Rectangular Flag Loader (Left Side) - Fully Flat, No Background Box ---
+                            // --- Live Rectangular Flag Loader ---
                             Box(
                                 modifier = Modifier
                                     .width(42.dp)
@@ -254,7 +259,7 @@ fun DashboardScreen(
                                                     flagBitmap = imageBitmap
                                                 }
                                             } catch (e: Exception) {
-                                                // Silently fail if offline, fallback to emoji
+                                                // Silently fail if offline
                                             }
                                         }
                                     }
@@ -488,22 +493,27 @@ data class BoostGame(val id: String, val name: String, val posterUrl: String, va
 fun GameBoostSection(modifier: Modifier = Modifier, selectedGameId: String = "pubg", onGameSelect: (String) -> Unit = {}) {
     val games = remember {
         listOf(
-            BoostGame("pubg", "PUBG Mobile", "https://cdn.cloudflare.steamstatic.com/steam/apps/578080/library_600x900.jpg", true),
-            BoostGame("cod", "Call of Duty", "https://cdn.cloudflare.steamstatic.com/steam/apps/1938090/library_600x900.jpg"),
-            BoostGame("efootball", "eFootball", "https://cdn.cloudflare.steamstatic.com/steam/apps/1665460/library_600x900.jpg"),
-            BoostGame("valorant", "Valorant", "https://cdn1.epicgames.com/offer/cbd5b3d310a54b12bf3fe8c41994174f/EGS_VALORANT_RiotGames_S2_1200x1600-b2f707f43db4af1658b1d4ed83134914")
+            BoostGame("pubg", "PUBG MOBILE", "https://cdn.cloudflare.steamstatic.com/steam/apps/578080/library_600x900.jpg", true),
+            BoostGame("cod", "CALL OF DUTY\nMOBILE", "https://cdn.cloudflare.steamstatic.com/steam/apps/1938090/library_600x900.jpg"),
+            BoostGame("efootball", "eFootball™", "https://cdn.cloudflare.steamstatic.com/steam/apps/1665460/library_600x900.jpg"),
+            BoostGame("valorant", "VALORANT", "https://cdn1.epicgames.com/offer/cbd5b3d310a54b12bf3fe8c41994174f/EGS_VALORANT_RiotGames_S2_1200x1600-b2f707f43db4af1658b1d4ed83134914")
         )
     }
     var activeGame by remember { mutableStateOf(selectedGameId) }
 
     Column(modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp), 
+            horizontalArrangement = Arrangement.SpaceBetween, 
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = CyberYellow, modifier = Modifier.size(18.dp))
+                // آیکون دسته بازی با رنگ نئون سبز
+                Icon(Icons.Default.VideogameAsset, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Game Profiles", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("Select Your Game", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
-            Text("Auto Detect", color = TextMuted, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text("Game Profiles >", color = CyberPurple, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(16.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -532,7 +542,8 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         } else { posterBitmap = posterMemoryCache[game.id] }
     }
 
-    val borderColor = if (isSelected) CyberYellow else CardStroke
+    // تغییر رنگ کادر به سبز نئونی در صورت انتخاب
+    val borderColor = if (isSelected) NeonGreen else CardStroke
     val glowWidth = if (isSelected) 2.dp else 1.dp
     val posterShape = RoundedCornerShape(16.dp)
 
@@ -548,21 +559,50 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         if (posterBitmap != null) {
             Image(bitmap = posterBitmap!!, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0xFA050508)))))
+        // سایه تیره پایین کارت برای خوانایی بهتر متن
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)))))
         
         if (isSelected) {
-            Box(modifier = Modifier.fillMaxWidth().padding(8.dp), contentAlignment = Alignment.TopEnd) {
-                Icon(Icons.Default.CheckCircle, contentDescription=null, tint=CyberYellow, modifier=Modifier.size(18.dp).background(Color.Black, CircleShape))
+            // تیک سفید داخل دایره سبز
+            Box(modifier = Modifier.fillMaxWidth().padding(6.dp), contentAlignment = Alignment.TopEnd) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle, 
+                    contentDescription = null, 
+                    tint = Color.White, 
+                    modifier = Modifier.size(20.dp).background(NeonGreen, CircleShape)
+                )
             }
         }
         
-        Column(Modifier.fillMaxSize().padding(10.dp), verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(game.name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 2, textAlign = TextAlign.Center, lineHeight = 14.sp)
-            Spacer(Modifier.height(8.dp))
+        Column(
+            Modifier.fillMaxSize().padding(bottom = 10.dp, start = 4.dp, end = 4.dp), 
+            verticalArrangement = Arrangement.Bottom, 
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = game.name, 
+                color = Color.White, 
+                fontSize = 12.sp, 
+                fontWeight = FontWeight.Black, 
+                maxLines = 2, 
+                textAlign = TextAlign.Center, 
+                lineHeight = 14.sp
+            )
+            Spacer(Modifier.height(6.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if(isSelected) Box(Modifier.size(4.dp).clip(CircleShape).background(CyberYellow))
-                Spacer(Modifier.width(4.dp))
-                Text("Optimized", color = if(isSelected) CyberYellow else TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                // آیکون رعد و برق سبز
+                Icon(
+                    Icons.Default.Bolt, 
+                    contentDescription = null, 
+                    tint = if(isSelected) NeonGreen else TextMuted, 
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
+                    text = "Optimized", 
+                    color = if(isSelected) NeonGreen else TextMuted, 
+                    fontSize = 10.sp, 
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
