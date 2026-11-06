@@ -159,7 +159,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Layers, contentDescription=null, tint=CyberPurple, modifier=Modifier.size(16.dp))
+                            Icon(Icons.Default.List, contentDescription=null, tint=CyberPurple, modifier=Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(text = "Server", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color.White)
                         }
@@ -192,7 +192,7 @@ fun DashboardScreen(
                                     brush = Brush.horizontalGradient(listOf(NeonGreen, CyberPurple)), 
                                     shape = serverShape
                                 )
-                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = openServerPicker)
+                                .clickable(onClick = openServerPicker)
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -250,12 +250,11 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Shield, contentDescription=null, tint=TextMuted, modifier=Modifier.size(12.dp))
+                                    Icon(Icons.Default.Security, contentDescription=null, tint=TextMuted, modifier=Modifier.size(12.dp))
                                     Spacer(Modifier.width(4.dp))
                                     Text(text = activeNode.displayProtocol, fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                                 }
                             }
-                            // فیکس ارور: استفاده از آیکون استاندارد به جای automirrored
                             Icon(Icons.Default.KeyboardArrowRight, contentDescription = strings.changeServer, tint = if(isConnected) NeonGreen else Color.White, modifier = Modifier.size(24.dp))
                         }
                     } else {
@@ -323,7 +322,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Shield, contentDescription = null, tint = if(isConnected) NeonGreen else TextMuted, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Security, contentDescription = null, tint = if(isConnected) NeonGreen else TextMuted, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(if(isConnected) "Protected" else "Not Connected", color = if(isConnected) NeonGreen else TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
@@ -397,7 +396,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                 if (isConnecting) {
                     CircularProgressIndicator(color = NeonGreen, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
                 } else {
-                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = if (isConnected) NeonGreen else Color.White, modifier = Modifier.size(42.dp))
+                    Icon(Icons.Default.Power, contentDescription = null, tint = if (isConnected) NeonGreen else Color.White, modifier = Modifier.size(42.dp))
                 }
             }
         }
@@ -566,7 +565,6 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             Image(bitmap = posterBitmap!!, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         }
         
-        // Cyberpunk Purple Gradient Filter
         Box(Modifier.fillMaxSize().background(
             Brush.verticalGradient(
                 colors = listOf(
@@ -638,8 +636,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
 }
 
 // ==========================================
-// Added back missing Enums and Data Classes 
-// that might have been deleted during replacement
+// Essential Enum and Data Class for Build
 // ==========================================
 
 enum class DashboardStyle {
@@ -651,4 +648,3 @@ data class DashboardSpeeds(
     val download: Long = 0L,
     val upload: Long = 0L
 )
-
