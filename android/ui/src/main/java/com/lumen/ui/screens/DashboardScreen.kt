@@ -1,4 +1,4 @@
-package com.lumen.ui.screens
+Package com.lumen.ui.screens
 
 import android.graphics.BitmapFactory
 import androidx.compose.animation.core.Animatable
@@ -75,10 +75,6 @@ import com.lumen.ui.components.expressiveButtonSemantics
 import com.lumen.ui.components.BrandTopBar
 import com.lumen.ui.components.ConnectionState
 import com.lumen.ui.components.CountryFlagHelper
-import com.airbnb.lottie.compose.LottieAnimation
-import com.airbnb.lottie.compose.LottieCompositionSpec
-import com.airbnb.lottie.compose.LottieConstants
-import com.airbnb.lottie.compose.rememberLottieComposition
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -355,12 +351,6 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
     val scope = rememberCoroutineScope()
     val orbScale = remember { Animatable(1f) }
 
-    // === Lottie Animations for Gaming Feel ===
-    // Animation for when it's Connecting (A radar/scanning animation)
-    val connectingAnim by rememberLottieComposition(LottieCompositionSpec.Url("https://lottie.host/80e927de-22af-40de-92eb-07ee974fcf37/yRkZ1l9zO0.json"))
-    // Animation for when it's Connected (A glowing energy shield/pulse)
-    val connectedAnim by rememberLottieComposition(LottieCompositionSpec.Url("https://lottie.host/880a133f-cfc2-401c-99c0-9dfa86a636de/mO9Yt2Z95o.json"))
-
     val onOrbitClick: () -> Unit = {
         scope.launch {
             orbScale.snapTo(0.88f)
@@ -412,7 +402,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             Text("Ultra Low Ping\nfor the Best Experience", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp)
         }
 
-        // === Cyberpunk Glowing Connect Button with Lottie ===
+        // Cyberpunk Glowing Connect Button
         Box(
             modifier = Modifier
                 .size(150.dp)
@@ -440,7 +430,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                 )
             }
             
-            // Inner Neon Green Ring with LOTTIE INTEGRATION
+            // Inner Neon Green Ring
             Box(
                 modifier = Modifier
                     .size(110.dp)
@@ -460,27 +450,10 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                     },
                 contentAlignment = Alignment.Center
             ) {
-                when {
-                    isConnecting -> {
-                        // Show High-Tech Scanning Lottie Animation
-                        LottieAnimation(
-                            composition = connectingAnim,
-                            iterations = LottieConstants.IterateForever,
-                            modifier = Modifier.fillMaxSize().padding(12.dp)
-                        )
-                    }
-                    isConnected -> {
-                        // Show Cyberpunk Energy Shield Lottie Animation
-                        LottieAnimation(
-                            composition = connectedAnim,
-                            iterations = LottieConstants.IterateForever,
-                            modifier = Modifier.fillMaxSize().padding(8.dp)
-                        )
-                    }
-                    else -> {
-                        // Default Disconnected State
-                        Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = Color.White, modifier = Modifier.size(42.dp))
-                    }
+                if (isConnecting) {
+                    CircularProgressIndicator(color = NeonGreen, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
+                } else {
+                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = if (isConnected) NeonGreen else Color.White, modifier = Modifier.size(42.dp))
                 }
             }
         }
