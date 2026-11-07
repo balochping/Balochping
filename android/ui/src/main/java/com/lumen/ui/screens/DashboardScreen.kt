@@ -1,31 +1,79 @@
 package com.lumen.ui.screens
 
 import android.graphics.BitmapFactory
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.*
-import androidx.compose.material.icons.Icons
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.WifiTethering
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.*
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.*
-import androidx.compose.ui.text.font.*
-import androidx.compose.ui.text.style.*
-import androidx.compose.ui.unit.*
-import com.lumen.ui.components.*
-import com.lumen.ui.theme.*
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.lumen.ui.components.AddServerSheet
+import com.lumen.ui.components.expressiveButtonSemantics
+import com.lumen.ui.components.BrandTopBar
+import com.lumen.ui.components.ConnectionState
+import com.lumen.ui.components.CountryFlagHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -112,6 +160,7 @@ fun DashboardScreen(
     val isConnected = connectionState == ConnectionState.Connected
     val scrollState = rememberScrollState()
 
+    // Background with Cyberpunk Purple and Dark Vibes
     val bgBrush = Brush.radialGradient(
         colors = listOf(CyberPurpleDark.copy(alpha = 0.25f), BgDark),
         center = Offset(800f, 0f),
@@ -299,29 +348,6 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
     val scope = rememberCoroutineScope()
     val orbScale = remember { Animatable(1f) }
 
-    // === Pure Compose Live Animations ===
-    val infiniteTransition = rememberInfiniteTransition()
-    
-    // 1. Radar Spinning Animation (0 to 360 degrees)
-    val radarRotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        )
-    )
-    
-    // 2. Heartbeat/Pulse Animation (Scaling up and down)
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.15f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        )
-    )
-
     val onOrbitClick: () -> Unit = {
         scope.launch {
             orbScale.snapTo(0.88f)
@@ -337,7 +363,6 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            // Protected Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
@@ -353,18 +378,17 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             }
             Spacer(modifier = Modifier.height(14.dp))
             
-            // Neon Text: Gaming Mode Active
-            val statusText = buildAnnotatedString {
+            val statusAnnotated = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = Color.White)) {
                     append(if(isConnecting) "Optimizing\n" else "Gaming Mode\n")
                 }
                 withStyle(style = SpanStyle(color = if(isConnected) NeonGreen else TextMuted)) {
-                    append(if(isConnected) "Active >>" else if(isConnecting) "Network..." else "Ready >>")
+                    append(if(isConnected) "<< Active" else if(isConnecting) "Network..." else "<< Ready")
                 }
             }
             
             Text(
-                text = statusText,
+                text = statusAnnotated,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Black,
                 lineHeight = 32.sp
@@ -373,7 +397,6 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             Text("Ultra Low Ping\nfor the Best Experience", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp)
         }
 
-        // === Cyberpunk Glowing Connect Button with Pure Compose Animation ===
         Box(
             modifier = Modifier
                 .size(150.dp)
@@ -383,31 +406,23 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
         ) {
             val shape = CircleShape 
             
-            // Outer Purple Glow Ring (Pulses when connected)
             if (isConnected || isConnecting) {
                 Box(
                     modifier = Modifier
                         .size(140.dp)
-                        .graphicsLayer {
-                            if (isConnected) {
-                                scaleX = pulseScale
-                                scaleY = pulseScale
-                            }
-                        }
                         .drawBehind {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(CyberPurple.copy(alpha = 0.5f), Color.Transparent),
-                                    center = center,
-                                    radius = size.width / 1.5f
-                                )
-                            )
+                            drawIntoCanvas { canvas ->
+                                val paint = androidx.compose.ui.graphics.Paint().apply {
+                                    color = CyberPurple.copy(alpha = 0.4f)
+                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(40f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                                }
+                                canvas.drawCircle(center, size.width / 2, paint)
+                            }
                         }
                         .border(3.dp, CyberPurple, shape)
                 )
             }
             
-            // Inner Neon Green Ring with Live Animations
             Box(
                 modifier = Modifier
                     .size(110.dp)
@@ -415,56 +430,22 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                     .background(BgDark)
                     .border(4.dp, if(isConnected) NeonGreen else CardStroke, shape)
                     .drawBehind {
-                        // 1. Static Green Glow if connected
                         if (isConnected) {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(NeonGreen.copy(alpha = 0.6f), Color.Transparent),
-                                    center = center,
-                                    radius = size.width / 1.5f
-                                )
-                            )
-                        }
-                        // 2. Spinning Radar Effect if connecting
-                        if (isConnecting) {
-                            rotate(radarRotation) {
-                                drawArc(
-                                    brush = Brush.sweepGradient(
-                                        colors = listOf(Color.Transparent, NeonGreen.copy(alpha = 0.8f))
-                                    ),
-                                    startAngle = -90f,
-                                    sweepAngle = 180f,
-                                    useCenter = true
-                                )
+                            drawIntoCanvas { canvas ->
+                                val paint = androidx.compose.ui.graphics.Paint().apply {
+                                    color = NeonGreen.copy(alpha = 0.5f)
+                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(20f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                                }
+                                canvas.drawCircle(center, size.width / 2, paint)
                             }
                         }
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // Changing the center Icon based on state
-                when {
-                    isConnecting -> {
-                        // Pulsing Wifi Icon during connection
-                        Icon(
-                            imageVector = Icons.Default.WifiTethering, 
-                            contentDescription = null, 
-                            tint = NeonGreen, 
-                            modifier = Modifier
-                                .size(38.dp)
-                                .graphicsLayer {
-                                    scaleX = pulseScale
-                                    scaleY = pulseScale
-                                }
-                        )
-                    }
-                    isConnected -> {
-                        // Power icon when fully connected
-                        Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(42.dp))
-                    }
-                    else -> {
-                        // Default disconnected state
-                        Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = Color.White, modifier = Modifier.size(42.dp))
-                    }
+                if (isConnecting) {
+                    CircularProgressIndicator(color = NeonGreen, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
+                } else {
+                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = if (isConnected) NeonGreen else Color.White, modifier = Modifier.size(42.dp))
                 }
             }
         }
