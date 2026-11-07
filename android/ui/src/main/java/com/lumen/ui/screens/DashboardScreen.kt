@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.WifiTethering
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.CircularProgressIndicator
@@ -58,6 +59,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
@@ -196,8 +198,7 @@ fun DashboardScreen(
 
                     if (speedStatsEnabled) {
                         val basePingValue = connectedPing ?: activeNode?.pingMs?.takeIf { it > 0 }?.toString()
-                        val dlSpeed = if (isConnected) formatSpeedToMbps(speedValues().download) else "0"
-                        PremiumStatsBar(basePing = basePingValue, dlSpeed = dlSpeed, isConnected = isConnected)
+                        PremiumStatsBar(basePing = basePingValue, speedValues = speedValues, isConnected = isConnected)
                         Spacer(modifier = Modifier.height(28.dp))
                     }
 
@@ -214,6 +215,7 @@ fun DashboardScreen(
                             Spacer(Modifier.width(6.dp))
                             Text(text = "Server", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color.White)
                         }
+                        // Auto Select Button (Neon Green Style)
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
@@ -247,6 +249,7 @@ fun DashboardScreen(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // --- Live Rectangular Flag Loader ---
                             Box(
                                 modifier = Modifier
                                     .width(42.dp)
@@ -363,6 +366,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
+            // Protected Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
@@ -378,7 +382,8 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             }
             Spacer(modifier = Modifier.height(14.dp))
             
-            val statusAnnotated = buildAnnotatedString {
+            // Neon Text: Gaming Mode Active
+            val statusText = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = Color.White)) {
                     append(if(isConnecting) "Optimizing\n" else "Gaming Mode\n")
                 }
@@ -388,7 +393,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             }
             
             Text(
-                text = statusAnnotated,
+                text = statusText,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Black,
                 lineHeight = 32.sp
@@ -397,6 +402,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             Text("Ultra Low Ping\nfor the Best Experience", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp)
         }
 
+        // Cyberpunk Glowing Connect Button
         Box(
             modifier = Modifier
                 .size(150.dp)
@@ -406,6 +412,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
         ) {
             val shape = CircleShape 
             
+            // Outer Purple Glow Ring
             if (isConnected || isConnecting) {
                 Box(
                     modifier = Modifier
@@ -423,6 +430,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                 )
             }
             
+            // Inner Neon Green Ring
             Box(
                 modifier = Modifier
                     .size(110.dp)
@@ -453,9 +461,8 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
 }
 
 @Composable
-private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boolean) {
+private fun PremiumStatsBar(basePing: String?, speedValues: () -> DashboardSpeeds, isConnected: Boolean) {
     var livePing by remember { mutableStateOf("--") }
-    var liveJitter by remember { mutableStateOf("--") }
     var liveLoss by remember { mutableStateOf("--") }
 
     LaunchedEffect(isConnected, basePing) {
@@ -464,17 +471,19 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
             while (true) {
                 val currentPing = (base + (-1..2).random()).coerceAtLeast(12)
                 livePing = currentPing.toString()
-                val currentJitter = (0..2).random()
-                liveJitter = currentJitter.toString()
                 liveLoss = "0" 
                 delay((1000..2000).random().toLong()) 
             }
         } else {
             livePing = "--"
-            liveJitter = "--"
             liveLoss = "--"
         }
     }
+
+    // === Fetching Real Live Speed Data for Download and Upload ===
+    val speeds = speedValues()
+    val dl = if (isConnected) formatDashboardSpeed(speeds.download) else Pair("--", "KB/s")
+    val ul = if (isConnected) formatDashboardSpeed(speeds.upload) else Pair("--", "KB/s")
 
     val barShape = RoundedCornerShape(16.dp)
     
@@ -492,13 +501,13 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = "Stable", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(icon = Icons.Default.Timeline, title = "Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.Download, title = "Download", value = dl.first, unit = dl.second, status = "Active", isConnected = isConnected)
+        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
+        PremiumStat(icon = Icons.Default.Upload, title = "Upload", value = ul.first, unit = ul.second, status = "Active", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
         PremiumStat(icon = Icons.Default.Shield, title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
-        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(icon = Icons.Default.Download, title = "Download", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
     }
 }
 
@@ -527,11 +536,6 @@ private fun PremiumStat(icon: androidx.compose.ui.graphics.vector.ImageVector, t
             }
         }
     }
-}
-
-internal fun formatSpeedToMbps(bytesPerSecond: Long): String {
-    val mbps = (bytesPerSecond * 8.0) / 1_000_000.0
-    return if (mbps > 0) String.format(Locale.US, "%.0f", mbps) else "0"
 }
 
 internal fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
@@ -703,3 +707,17 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         }
     }
 }
+
+// ==========================================
+// Essential Enum and Data Class for Build
+// ==========================================
+
+enum class DashboardStyle {
+    DEFAULT,
+    SLIDER
+}
+
+data class DashboardSpeeds(
+    val download: Long = 0L,
+    val upload: Long = 0L
+)
