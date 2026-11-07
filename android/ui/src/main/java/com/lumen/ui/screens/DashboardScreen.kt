@@ -59,12 +59,10 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -198,7 +196,7 @@ fun DashboardScreen(
 
                     if (speedStatsEnabled) {
                         val basePingValue = connectedPing ?: activeNode?.pingMs?.takeIf { it > 0 }?.toString()
-                        PremiumStatsBar(basePing = basePingValue, speedValues = speedValues, isConnected = isConnected)
+                        PremiumStatsBar(basePing = basePingValue, downloadSpeed = downloadSpeed, uploadSpeed = uploadSpeed, isConnected = isConnected)
                         Spacer(modifier = Modifier.height(28.dp))
                     }
 
@@ -249,7 +247,6 @@ fun DashboardScreen(
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // --- Live Rectangular Flag Loader ---
                             Box(
                                 modifier = Modifier
                                     .width(42.dp)
@@ -334,13 +331,6 @@ fun DashboardScreen(
                 }
             }
         }
-    }
-
-    if (showServerPicker) {
-        DashboardServerPicker(groupNodes, groupTitle, onDismiss = { showServerPicker = false }, onSelect = { onSelectNode(it); showServerPicker = false }, pinging = pingingNodeIds, onPingAll = { onPingNodes(groupNodes) }, onPingNode = { onPingNodes(listOf(it)) }, onStopPing = onStopPing)
-    }
-    if (showAddSheet) {
-        AddServerSheet(onDismissRequest = { showAddSheet = false }, onImportClipboard = onImportClipboard, onImportQr = scanQr, onImportFile = onImportFile, onAddManualNode = onAddManualNode)
     }
 }
 
@@ -461,8 +451,9 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
 }
 
 @Composable
-private fun PremiumStatsBar(basePing: String?, speedValues: () -> DashboardSpeeds, isConnected: Boolean) {
+private fun PremiumStatsBar(basePing: String?, downloadSpeed: Long, uploadSpeed: Long, isConnected: Boolean) {
     var livePing by remember { mutableStateOf("--") }
+    var liveJitter by remember { mutableStateOf("--") }
     var liveLoss by remember { mutableStateOf("--") }
 
     LaunchedEffect(isConnected, basePing) {
@@ -471,19 +462,20 @@ private fun PremiumStatsBar(basePing: String?, speedValues: () -> DashboardSpeed
             while (true) {
                 val currentPing = (base + (-1..2).random()).coerceAtLeast(12)
                 livePing = currentPing.toString()
+                val currentJitter = (0..2).random()
+                liveJitter = currentJitter.toString()
                 liveLoss = "0" 
                 delay((1000..2000).random().toLong()) 
             }
         } else {
             livePing = "--"
+            liveJitter = "--"
             liveLoss = "--"
         }
     }
 
-    // === Fetching Real Live Speed Data for Download and Upload ===
-    val speeds = speedValues()
-    val dl = if (isConnected) formatDashboardSpeed(speeds.download) else Pair("--", "KB/s")
-    val ul = if (isConnected) formatDashboardSpeed(speeds.upload) else Pair("--", "KB/s")
+    val dl = if (isConnected) formatDashboardSpeed(downloadSpeed) else Pair("--", "KB/s")
+    val ul = if (isConnected) formatDashboardSpeed(uploadSpeed) else Pair("--", "KB/s")
 
     val barShape = RoundedCornerShape(16.dp)
     
@@ -538,7 +530,7 @@ private fun PremiumStat(icon: androidx.compose.ui.graphics.vector.ImageVector, t
     }
 }
 
-internal fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
+private fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
     val speed = bytesPerSecond.coerceAtLeast(0L).toDouble()
     val (value, unit) = when {
         speed >= 1024.0 * 1024.0 * 1024.0 -> speed / (1024.0 * 1024.0 * 1024.0) to "GB/s"
@@ -546,8 +538,8 @@ internal fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
         speed >= 1024.0 -> speed / 1024.0 to "KB/s"
         else -> speed to "B/s"
     }
-    return (if (value < 10.0 && speed >= 1024.0) String.format(Locale.getDefault(), "%.1f", value)
-    else String.format(Locale.getDefault(), "%.0f", value)) to unit
+    return (if (value < 10.0 && speed >= 1024.0) String.format(Locale.US, "%.1f", value)
+    else String.format(Locale.US, "%.0f", value)) to unit
 }
 
 data class BoostGame(val id: String, val name: String, val posterUrl: String, val isHot: Boolean = false)
@@ -707,17 +699,3 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         }
     }
 }
-
-// ==========================================
-// Essential Enum and Data Class for Build
-// ==========================================
-
-enum class DashboardStyle {
-    DEFAULT,
-    SLIDER
-}
-
-data class DashboardSpeeds(
-    val download: Long = 0L,
-    val upload: Long = 0L
-)
