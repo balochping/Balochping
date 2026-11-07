@@ -1,29 +1,80 @@
 package com.lumen.ui.screens
 
 import android.graphics.BitmapFactory
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.shape.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.VideogameAsset
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.WifiTethering
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.*
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.*
-import androidx.compose.ui.text.font.*
-import androidx.compose.ui.text.style.*
-import androidx.compose.ui.unit.*
-import com.lumen.ui.components.*
-import com.lumen.ui.theme.*
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.lumen.ui.components.AddServerSheet
+import com.lumen.ui.components.expressiveButtonSemantics
+import com.lumen.ui.components.BrandTopBar
+import com.lumen.ui.components.ConnectionState
+import com.lumen.ui.components.CountryFlagHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -110,6 +161,7 @@ fun DashboardScreen(
     val isConnected = connectionState == ConnectionState.Connected
     val scrollState = rememberScrollState()
 
+    // Background with Cyberpunk Purple and Dark Vibes
     val bgBrush = Brush.radialGradient(
         colors = listOf(CyberPurpleDark.copy(alpha = 0.25f), BgDark),
         center = Offset(800f, 0f),
@@ -159,10 +211,11 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.List, contentDescription=null, tint=CyberPurple, modifier=Modifier.size(16.dp))
+                            Icon(Icons.Default.Layers, contentDescription=null, tint=CyberPurple, modifier=Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(text = "Server", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color.White)
                         }
+                        // Auto Select Button (Neon Green Style)
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
@@ -172,7 +225,7 @@ fun DashboardScreen(
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "⚡", fontSize = 10.sp, color = NeonGreen)
+                            Icon(Icons.Default.Bolt, contentDescription=null, tint=NeonGreen, modifier=Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
                             Text(text = "Auto Select", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
                         }
@@ -192,10 +245,11 @@ fun DashboardScreen(
                                     brush = Brush.horizontalGradient(listOf(NeonGreen, CyberPurple)), 
                                     shape = serverShape
                                 )
-                                .clickable(onClick = openServerPicker)
+                                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = openServerPicker)
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // --- Live Rectangular Flag Loader ---
                             Box(
                                 modifier = Modifier
                                     .width(42.dp)
@@ -250,12 +304,12 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Security, contentDescription=null, tint=TextMuted, modifier=Modifier.size(12.dp))
+                                    Icon(Icons.Default.Shield, contentDescription=null, tint=TextMuted, modifier=Modifier.size(12.dp))
                                     Spacer(Modifier.width(4.dp))
                                     Text(text = activeNode.displayProtocol, fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                                 }
                             }
-                            Icon(Icons.Default.KeyboardArrowRight, contentDescription = strings.changeServer, tint = if(isConnected) NeonGreen else Color.White, modifier = Modifier.size(24.dp))
+                            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = strings.changeServer, tint = if(isConnected) NeonGreen else Color.White, modifier = Modifier.size(24.dp))
                         }
                     } else {
                         Box(
@@ -297,8 +351,6 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
     val scope = rememberCoroutineScope()
     val orbScale = remember { Animatable(1f) }
 
-    val mainColor = if (isConnected) CyberYellow else TextMuted
-    
     val onOrbitClick: () -> Unit = {
         scope.launch {
             orbScale.snapTo(0.88f)
@@ -314,6 +366,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
+            // Protected Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
@@ -322,24 +375,25 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Security, contentDescription = null, tint = if(isConnected) NeonGreen else TextMuted, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Shield, contentDescription = null, tint = if(isConnected) NeonGreen else TextMuted, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(if(isConnected) "Protected" else "Not Connected", color = if(isConnected) NeonGreen else TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
             Spacer(modifier = Modifier.height(14.dp))
             
-            val statusAnnotated = buildAnnotatedString {
+            // Neon Text: Gaming Mode Active
+            val statusText = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = Color.White)) {
-                    append(if(isConnecting) "Optimizing\n" else if(isConnected) "Gaming Mode\n" else "Ready to\n")
+                    append(if(isConnecting) "Optimizing\n" else "Gaming Mode\n")
                 }
                 withStyle(style = SpanStyle(color = if(isConnected) NeonGreen else TextMuted)) {
-                    append(if(isConnected) "Active >>" else if(isConnecting) "Network..." else "Boost >>")
+                    append(if(isConnected) "Active >>" else if(isConnecting) "Network..." else "Ready >>")
                 }
             }
             
             Text(
-                text = statusAnnotated,
+                text = statusText,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Black,
                 lineHeight = 32.sp
@@ -348,6 +402,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
             Text("Ultra Low Ping\nfor the Best Experience", color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium, lineHeight = 16.sp)
         }
 
+        // Cyberpunk Glowing Connect Button
         Box(
             modifier = Modifier
                 .size(150.dp)
@@ -357,23 +412,25 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
         ) {
             val shape = CircleShape 
             
+            // Outer Purple Glow Ring
             if (isConnected || isConnecting) {
                 Box(
                     modifier = Modifier
                         .size(140.dp)
                         .drawBehind {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(CyberPurple.copy(alpha = 0.5f), Color.Transparent),
-                                    center = center,
-                                    radius = size.width / 1.5f
-                                )
-                            )
+                            drawIntoCanvas { canvas ->
+                                val paint = androidx.compose.ui.graphics.Paint().apply {
+                                    color = CyberPurple.copy(alpha = 0.4f)
+                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(40f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                                }
+                                canvas.drawCircle(center, size.width / 2, paint)
+                            }
                         }
                         .border(3.dp, CyberPurple, shape)
                 )
             }
             
+            // Inner Neon Green Ring
             Box(
                 modifier = Modifier
                     .size(110.dp)
@@ -382,13 +439,13 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                     .border(4.dp, if(isConnected) NeonGreen else CardStroke, shape)
                     .drawBehind {
                         if (isConnected) {
-                            drawCircle(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(NeonGreen.copy(alpha = 0.6f), Color.Transparent),
-                                    center = center,
-                                    radius = size.width / 1.5f
-                                )
-                            )
+                            drawIntoCanvas { canvas ->
+                                val paint = androidx.compose.ui.graphics.Paint().apply {
+                                    color = NeonGreen.copy(alpha = 0.5f)
+                                    asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(20f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                                }
+                                canvas.drawCircle(center, size.width / 2, paint)
+                            }
                         }
                     },
                 contentAlignment = Alignment.Center
@@ -396,7 +453,7 @@ private fun PremiumHeroSection(connectionState: ConnectionState, onToggleConnect
                 if (isConnecting) {
                     CircularProgressIndicator(color = NeonGreen, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
                 } else {
-                    Icon(Icons.Default.Power, contentDescription = null, tint = if (isConnected) NeonGreen else Color.White, modifier = Modifier.size(42.dp))
+                    Icon(Icons.Default.PowerSettingsNew, contentDescription = null, tint = if (isConnected) NeonGreen else Color.White, modifier = Modifier.size(42.dp))
                 }
             }
         }
@@ -443,22 +500,26 @@ private fun PremiumStatsBar(basePing: String?, dlSpeed: String, isConnected: Boo
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PremiumStat(title = "⚡ Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "〽️ Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.Timeline, title = "Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "🛡️ Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.Shield, title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke)) 
-        PremiumStat(title = "⬇️ Speed", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.Download, title = "Download", value = if(isConnected) dlSpeed else "--", unit = "Mbps", status = "Fast", isConnected = isConnected)
     }
 }
 
 @Composable
-private fun PremiumStat(title: String, value: String, unit: String, status: String, isConnected: Boolean) {
+private fun PremiumStat(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String, unit: String, status: String, isConnected: Boolean) {
     val mainColor = if(isConnected) NeonGreen else Color.White
     
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(title, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = TextMuted, modifier = Modifier.size(12.dp))
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(title, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        }
         Spacer(modifier = Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Bottom) {
             Text(value, color = mainColor, fontSize = 20.sp, fontWeight = FontWeight.Black)
@@ -479,6 +540,18 @@ private fun PremiumStat(title: String, value: String, unit: String, status: Stri
 internal fun formatSpeedToMbps(bytesPerSecond: Long): String {
     val mbps = (bytesPerSecond * 8.0) / 1_000_000.0
     return if (mbps > 0) String.format(Locale.US, "%.0f", mbps) else "0"
+}
+
+internal fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
+    val speed = bytesPerSecond.coerceAtLeast(0L).toDouble()
+    val (value, unit) = when {
+        speed >= 1024.0 * 1024.0 * 1024.0 -> speed / (1024.0 * 1024.0 * 1024.0) to "GB/s"
+        speed >= 1024.0 * 1024.0 -> speed / (1024.0 * 1024.0) to "MB/s"
+        speed >= 1024.0 -> speed / 1024.0 to "KB/s"
+        else -> speed to "B/s"
+    }
+    return (if (value < 10.0 && speed >= 1024.0) String.format(Locale.getDefault(), "%.1f", value)
+    else String.format(Locale.getDefault(), "%.0f", value)) to unit
 }
 
 data class BoostGame(val id: String, val name: String, val posterUrl: String, val isHot: Boolean = false)
@@ -502,7 +575,7 @@ fun GameBoostSection(modifier: Modifier = Modifier, selectedGameId: String = "pu
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🎮", fontSize = 18.sp)
+                Icon(Icons.Default.VideogameAsset, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Select Your Game", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
@@ -545,14 +618,13 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             .then(
                 if (isSelected) {
                     Modifier.drawBehind {
-                        drawRoundRect(
-                            brush = Brush.radialGradient(
-                                colors = listOf(NeonGreen.copy(alpha = 0.6f), Color.Transparent),
-                                center = center,
-                                radius = size.width
-                            ),
-                            cornerRadius = CornerRadius(16.dp.toPx(), 16.dp.toPx())
-                        )
+                        drawIntoCanvas { canvas ->
+                            val composePaint = androidx.compose.ui.graphics.Paint().apply {
+                                color = NeonGreen.copy(alpha = 0.55f)
+                                asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(45f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                            }
+                            canvas.drawRoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx(), composePaint)
+                        }
                     }
                 } else Modifier
             )
@@ -568,15 +640,15 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         Box(Modifier.fillMaxSize().background(
             Brush.verticalGradient(
                 colors = listOf(
-                    CyberPurple.copy(alpha = 0.4f), 
+                    CyberPurple.copy(alpha = 0.15f),
                     Color.Transparent,
-                    Color.Black.copy(alpha = 0.95f) 
+                    Color.Black.copy(alpha = 0.95f)
                 )
             )
         ))
 
         if (!isSelected) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
         }
         
         if (isSelected) {
@@ -622,7 +694,12 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "⚡", fontSize = 9.sp)
+                Icon(
+                    Icons.Default.Bolt, 
+                    contentDescription = null, 
+                    tint = if(isSelected) NeonGreen else TextMuted, 
+                    modifier = Modifier.size(14.dp)
+                )
                 Spacer(Modifier.width(2.dp))
                 Text(
                     text = "Optimized", 
@@ -634,17 +711,3 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         }
     }
 }
-
-// ==========================================
-// Essential Enum and Data Class for Build
-// ==========================================
-
-enum class DashboardStyle {
-    DEFAULT,
-    SLIDER
-}
-
-data class DashboardSpeeds(
-    val download: Long = 0L,
-    val upload: Long = 0L
-)
