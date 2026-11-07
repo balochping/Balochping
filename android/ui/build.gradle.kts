@@ -1,4 +1,4 @@
-plugins {
+Plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
@@ -56,9 +56,6 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-    
-    // === کتابخانه انیمیشن‌های سایبرپانکی و خفن گیمینگ ===
-    implementation("com.airbnb.android:lottie-compose:6.4.0")
 
     testImplementation("junit:junit:4.13.2")
 }
