@@ -31,8 +31,10 @@ internal data class AndroidUpdateState(
  */
 internal object AndroidUpdateChecker {
     const val AUTO_CHECK_INTERVAL_MS = 24L * 60L * 60L * 1000L
+    
+    // 🚀 آدرس گیت‌هاب به ریپازیتوری خودت تغییر کرد
     const val RELEASES_API =
-        "https://api.github.com/repos/krambovic/Lumen/releases?per_page=100"
+        "https://api.github.com/repos/Balochping/android/releases?per_page=100"
 
     fun isAutoCheckDue(nowMs: Long, lastCheckMs: Long): Boolean =
         lastCheckMs <= 0L || nowMs - lastCheckMs >= AUTO_CHECK_INTERVAL_MS
@@ -45,7 +47,10 @@ internal object AndroidUpdateChecker {
             connection.readTimeout = 15_000
             connection.setRequestProperty("Accept", "application/vnd.github+json")
             connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
-            connection.setRequestProperty("User-Agent", "Lumen-Android-Updater")
+            
+            // 🚀 اسم درخواست‌دهنده به برند خودت تغییر کرد
+            connection.setRequestProperty("User-Agent", "Balochping-Android-Updater")
+            
             val status = connection.responseCode
             if (status !in 200..299) {
                 throw IllegalStateException("GitHub returned HTTP $status")
