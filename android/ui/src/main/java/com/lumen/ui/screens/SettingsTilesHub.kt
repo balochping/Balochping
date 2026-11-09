@@ -104,9 +104,14 @@ internal fun SettingsTilesHub(
             if (tiles.isEmpty()) Text(s.settingsNoTiles,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                 textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (!editing) Text("Lumen · ${LumenVersion.appVersion}",
-                style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp))
+            
+            // 🚀 نام برنامه در پایین صفحه تنظیمات به Baloch Ping تغییر کرد
+            if (!editing) {
+                val appNameBottom = if (s.localeCode == "fa") "بلوچ پینگ" else "Baloch Ping"
+                Text("$appNameBottom · ${LumenVersion.appVersion}",
+                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 16.dp))
+            }
             Spacer(Modifier.height(if (editing) 20.dp else 96.dp))
         }
         if (editing) {
@@ -170,7 +175,6 @@ private fun SettingsTileGrid(
         val columns = if (maxWidth >= 600.dp) 4 else 2
         val gap = 8.dp
         val cellWidth = (maxWidth - gap * (columns - 1)) / columns
-        // A fixed cell height clips scaled text and makes resizing appear ineffective.
         val cellHeight = (cellWidth * .9f).coerceIn(140.dp, 168.dp) * density.fontScale.coerceAtLeast(1f)
         val stepX = with(density) { (cellWidth + gap).toPx() }
         val stepY = with(density) { (cellHeight + gap).toPx() }
@@ -194,7 +198,6 @@ private fun SettingsTileGrid(
                 current.indexOfFirst { it.id == target.tile.id }))
         }
         val latestMoveAtPointer by rememberUpdatedState(::moveAtPointer)
-        // Keep the pointer anchored while the scroll container moves under the dragged tile.
         LaunchedEffect(dragged, columns) {
             if (dragged == null) return@LaunchedEffect
             val edge = with(density) { 64.dp.toPx() }
@@ -211,7 +214,6 @@ private fun SettingsTileGrid(
                         pointerY > bounds.bottom - edge -> ((pointerY - bounds.bottom + edge) / edge).coerceIn(0f, 1f)
                         else -> 0f
                     }
-                    // The actual suspend scroll runs below; this callback only computes velocity.
                     strength * with(density) { 540.dp.toPx() } * elapsed
                 }.let { distance ->
                     if (distance != 0f) {
@@ -229,7 +231,11 @@ private fun SettingsTileGrid(
                 val tile = placement.tile
                 val column = if (rtl) columns - placement.column - tile.size.columns else placement.column
                 val anchor = IntOffset((column * stepX).roundToInt(), (placement.row * stepY).roundToInt())
-                val title = settingsTileTitle(tile.id, s)
+                // 🚀 نام کارت انجمن به پشتیبانی/Support تغییر کرد
+                val title = if (tile.id == SettingsTileId.COMMUNITY) {
+                    if (s.localeCode == "fa") "پشتیبانی" else "Support"
+                } else settingsTileTitle(tile.id, s)
+                
                 fun updateSize() {
                     onChange(tiles.map { if (it.id == tile.id) it.copy(size = it.size.next()) else it })
                 }
@@ -301,8 +307,6 @@ private fun SettingsTileCell(
             spring(stiffness = 500f, dampingRatio = .85f))
     }
     fun finishDrag() {
-        // Removing pointerInput on exit can cancel its gesture. Only the active
-        // editing tile may seed a drop spring; other tiles keep their own anchors.
         if (!currentEditing || !currentDragging) return
         scope.launch {
             if (!currentEditing || !currentDragging) return@launch
@@ -373,6 +377,7 @@ private fun SettingsTileArtwork(
         SettingsTileId.PING, SettingsTileId.APP -> art.onCoral
         else -> art.onLavender
     }
+    // 🚀 متن ریز روی کارت‌ها رو اینجا تنظیم می‌کنیم
     val description = if (tile.size == SettingsTileSize.SMALL) "" else when (id) {
         SettingsTileId.APPEARANCE -> s.settingsAppearanceSummary
         SettingsTileId.ROUTING -> s.settingsRoutingSummary
@@ -383,7 +388,8 @@ private fun SettingsTileArtwork(
         SettingsTileId.LOGS -> s.settingsLogsSummary
         SettingsTileId.UPDATES -> s.settingsUpdatesSummary
         SettingsTileId.PING -> s.settingsPingSummary
-        SettingsTileId.COMMUNITY -> s.communitySummary
+        // 🚀 تغییر متن اضافی به فقط "تلگرام" یا "Telegram"
+        SettingsTileId.COMMUNITY -> if (s.localeCode == "fa") "تلگرام" else "Telegram"
     }
     val icon = when (id) {
         SettingsTileId.APPEARANCE -> Icons.Default.Palette
@@ -395,7 +401,8 @@ private fun SettingsTileArtwork(
         SettingsTileId.TRAFFIC -> Icons.AutoMirrored.Filled.Send
         SettingsTileId.LOGS -> Icons.Default.Description
         SettingsTileId.UPDATES -> Icons.Default.SystemUpdate
-        SettingsTileId.COMMUNITY -> Icons.Default.Forum
+        // آیکون انجمن رو هم به همون آیکون ارسال/موشک تلگرام تغییر دادیم
+        SettingsTileId.COMMUNITY -> Icons.AutoMirrored.Filled.Send 
     }
     val motif = when (id) {
         SettingsTileId.APPEARANCE -> Motif.Flower
@@ -406,7 +413,13 @@ private fun SettingsTileArtwork(
         SettingsTileId.APP -> Motif.Pebble
         SettingsTileId.COMMUNITY -> Motif.Flower
     }
-    ExpressiveNavigationTile(settingsTileTitle(id, s), description, icon, (id.ordinal + 1).toString().padStart(2, '0'),
+    
+    // 🚀 نام کارت رو هم موقع رسم تنظیم می‌کنیم تا فارسی بشه پشتیبانی و انگلیسی Support
+    val finalTitle = if (id == SettingsTileId.COMMUNITY) {
+        if (s.localeCode == "fa") "پشتیبانی" else "Support"
+    } else settingsTileTitle(id, s)
+
+    ExpressiveNavigationTile(finalTitle, description, icon, (id.ordinal + 1).toString().padStart(2, '0'),
         container, ink, if (id == SettingsTileId.APPEARANCE) art.lime else ink, motif, onClick, modifier,
         prominent = id == SettingsTileId.APPEARANCE && tile.size == SettingsTileSize.TALL, interactive = interactive)
 }
