@@ -53,11 +53,12 @@ internal object AndroidUpdateChecker {
             
             val status = connection.responseCode
             if (status !in 200..299) {
-                throw IllegalStateException("GitHub returned HTTP $status")
+                // 🚀 پیام خطای گیت‌هاب به پیام فارسی و دوستانه تغییر کرد
+                throw IllegalStateException("به‌روزرسانی موجود نیست")
             }
             val body = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
             return selectLatest(body, supportedAbis)
-                ?: throw IllegalStateException("No published Android release was found")
+                ?: throw IllegalStateException("به‌روزرسانی موجود نیست")
         } finally {
             connection.disconnect()
         }
@@ -122,7 +123,7 @@ internal object AndroidUpdateChecker {
             }?.let { return it }
         }
         return assets.firstOrNull { (name, _) ->
-            name.contains("universal", ignoreCase = true)
+            name.contains("universal", ignoreCase, true)
         }
     }
 
