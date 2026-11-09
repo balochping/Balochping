@@ -1,3 +1,4 @@
+
 package com.lumen.ui.screens
 
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -19,7 +20,7 @@ private fun russianPlural(count: Int, one: String, few: String, many: String): S
 
 class LumenStrings {
     var dashboardStyleDock = "Dock control"
-    var resetLumen = "Reset Lumen"; var resetSettings = "Reset settings"; var resetServers = "Delete servers"
+    var resetLumen = "Reset Balochping"; var resetSettings = "Reset settings"; var resetServers = "Delete servers"
     var resetSettingsHint = "Restore preferences. Servers and subscriptions stay."
     var resetServersHint = "Delete all servers, subscriptions and groups. Settings stay."
     var resetWarning = "The connection will stop. This action cannot be undone."
@@ -151,9 +152,12 @@ class LumenStrings {
     var downloadUpdate = "Download update"; var updateCheckFailed = "Could not check for updates"
     var downloadingUpdate = "Downloading update\u2026"
     var autoCheckUpdates = "Automatically check for updates"
-    var autoCheckUpdatesDesc = "Check GitHub when Lumen opens, at most once a day"
+    
+    // 🚀 متن طولانی "هنگام باز شدن..." در همه زبان‌ها حذف شد (مقدار خالی شد)
+    var autoCheckUpdatesDesc = ""
+    
     var updateInstallPermissionRequired =
-        "Allow Lumen to install apps, then return to continue the update"
+        "Allow Balochping to install apps, then return to continue the update"
     var updateInstallerUnavailable = "Android's package installer is unavailable"
     var androidReleaseTag = "Android release tag"
     var unlimited = ""; var subscriptionInfo = ""; var password = ""
@@ -168,14 +172,13 @@ class LumenStrings {
     var peerPublicKeyLabel = ""; var wgAddressLabel = ""; var presharedKeyLabel = ""
     var allowedIpsLabel = ""; var reservedLabel = ""; var awgJunkParamsLabel = ""
     var amneziaCompatible = ""; var amneziaCompatibleDesc = ""
-    // Falls back to English when a locale does not translate it.
     var disableAmnezia = "Disable Amnezia compatibility"
     var disableAmneziaDesc = "Remove the junk parameters and use the server as plain WireGuard"
     var useProxyLabel = "Use proxy"
     var proxyServerLabel = "Proxy server"
     var proxyUsernameLabel = "Proxy username (optional)"
     var proxyPasswordLabel = "Proxy password (optional)"
-    var obfsProxyHint = "obfsproxy runs inside Lumen, no extra binary is needed"
+    var obfsProxyHint = "obfsproxy runs inside Balochping, no extra binary is needed"
     var masqueProfileIdLabel = "Profile ID"
     var masqueAuthTokenLabel = "Auth token"
     var wgMtuLabel = "MTU (optional)"
@@ -186,7 +189,6 @@ class LumenStrings {
     var telemetryEnabledDesc = "Share the app version and anonymous error statistics to help fix problems"
     var openvpnConfigLabel = ""; var autoNodeDescriptionLabel = ""; var serverLabel = ""
     var portLabel = ""; var saveAction = ""
-    // Ping & speed screen. Falls back to English when a locale does not translate it.
     var pingAttemptsLabel = "Attempts per server"
     var pingAggregateLabel = "Result from attempts"
     var pingRetryDelayLabel = "Delay between attempts (ms)"
@@ -201,7 +203,6 @@ class LumenStrings {
     var aggregateMin = "Best"
     var aggregateAvg = "Average"
     var aggregateMedian = "Median"
-    // Server list organization. Falls back to English when a locale does not translate it.
     var sortByNameDesc = "Name (Z-A)"
     var sortByCountry = "Country"
     var sortByProtocol = "Protocol"
@@ -214,7 +215,6 @@ class LumenStrings {
     var filtersLabel = ""; var allProtocols = ""; var groupsWord = ""; var serversWord = ""
     var addServerOrSubscription = ""; var subscriptionLink = ""; var sortDefaultLabel = ""
     var resetFilters = ""; var nothingFound = ""; var groupsAndServers = ""
-    // Traffic and app settings. Falls back to English when a locale does not translate it.
     var muxProtocolLabel = "Multiplex protocol"
     var muxMinStreamsLabel = "Minimum streams"
     var muxPadding = "Multiplex padding"
@@ -238,19 +238,16 @@ class LumenStrings {
     var urlTestInterruptDesc = "Drop existing connections when auto-select moves to another server"
     var loggingEnabled = "Logging"
     var loggingEnabledDesc = "Record app and core logs. Off stops all logging and keeps nothing on the device"
-    // Log viewer levels. Falls back to English when a locale does not translate it.
     var logLevelAll = "All"
     var logLevelDebug = "Debug"
     var logLevelInfo = "Info"
     var logLevelWarning = "Warning"
     var logLevelError = "Error"
     var loadOlderLogs = "Load older entries"
-    // OpenVPN credentials. Falls back to English when a locale does not translate it.
     var ovpnCredentialsRequired =
         "This profile signs in with a username and password. Fill in both — the server rejects the connection without them."
     var ovpnCertificateOnlyHint =
         "Certificate-only profile: it authenticates with the client certificate, so no username or password is needed."
-    // Dashboard "Check" action and subscription update feedback.
     var checkPing = "Check"
     var pingUnreachable = "unreachable"
     var noServerSelected = "No server selected"
@@ -262,14 +259,12 @@ class LumenStrings {
     var ovpnKeyPasswordLabel = "Private key password"
     var ovpnKeyPasswordRequired =
         "The private key is encrypted. Enter its password, otherwise the tunnel cannot start."
-    // Camera permission. Falls back to English when a locale does not translate it.
     var cameraPermissionTitle = "Camera access needed"
     var cameraPermissionMessage =
-        "Scanning a QR code needs the camera. Lumen uses it only while the scanner is open."
+        "Scanning a QR code needs the camera. Balochping uses it only while the scanner is open."
     var cameraPermissionBlocked =
-        "Camera access is turned off for Lumen, so the QR scanner cannot start. Allow the camera in the app settings and try again."
+        "Camera access is turned off for Balochping, so the QR scanner cannot start. Allow the camera in the app settings and try again."
     var openAppSettings = "Open settings"
-    // Custom server groups. Falls back to English when a locale does not translate it.
     var newGroup = "New group"
     var groupNameLabel = "Group name"
     var createAction = "Create"
@@ -279,7 +274,6 @@ class LumenStrings {
         "Only the group is removed. Its servers are kept and move back to Default."
     var moveToGroup = "Move to group"
     var groupNoGroup = "No group"
-    // Provider metadata of a subscription. Falls back to English when a locale does not translate it.
     var providerAnnouncement = "Announcement"
     var providerChannel = "Channel"
     var providerSupport = "Support"
@@ -357,7 +351,7 @@ private val EN = LumenStrings().apply {
     updateAvailableVersion="Update available {version}"
     upToDate="You already have the latest Android version"
     downloadUpdate="Download update"; updateCheckFailed="Could not check for updates"
-    autoCheckUpdates="Automatically check for updates"; autoCheckUpdatesDesc="Check GitHub when Lumen opens, at most once a day"
+    autoCheckUpdates="Automatically check for updates"; autoCheckUpdatesDesc=""
     androidReleaseTag="Android release tag"
     directLoad="Load directly"; directLoadDesc="Load subscription bypassing proxy"
     sendHwid="Send HWID"; sendHwidDesc="Send device ID in X-Hwid header"
@@ -465,7 +459,7 @@ private val EN = LumenStrings().apply {
 }
 
 private val RU = LumenStrings().apply {
-    resetLumen="Сброс Lumen"; resetSettings="Сброс настроек"; resetServers="Удаление серверов"
+    resetLumen="Сброс Balochping"; resetSettings="Сброс настроек"; resetServers="Удаление серверов"
     resetSettingsHint="Настройки станут исходными. Серверы и подписки останутся."
     resetServersHint="Все серверы, подписки и группы будут удалены. Настройки останутся."
     resetWarning="Подключение остановится. Отменить это действие нельзя."
@@ -533,7 +527,7 @@ private val RU = LumenStrings().apply {
     updateAvailableVersion="Доступно обновление {version}"
     upToDate="У вас уже последняя версия для Android"
     downloadUpdate="Скачать обновление"; updateCheckFailed="Не удалось проверить обновления"
-    autoCheckUpdates="Автоматически проверять обновления"; autoCheckUpdatesDesc="Проверять GitHub при запуске Lumen, не чаще одного раза в день"
+    autoCheckUpdates="Автоматически проверять обновления"; autoCheckUpdatesDesc=""
     androidReleaseTag="Тег Android-релиза"
     directLoad="Загружать напрямую"; directLoadDesc="Подписка загружается в обход выбранного прокси-сервера"
     sendHwid="Отправлять HWID"; sendHwidDesc="Передавать идентификатор устройства в заголовке X-Hwid"
@@ -597,7 +591,7 @@ private val RU = LumenStrings().apply {
     dnsHostsSection="Hosts и override"; dnsHostsLabel = "Статические адреса: домен=IP"
     dnsOverride = "Переопределение DNS"; dnsOverrideDesc="Точный hostname → IPv4 до остальных DNS-правил"
     dnsHostname = "Имя хоста"; dnsIpv4="IPv4"
-    vibration="Вибрация"; vibrationDesc="Тактильный отклик при нажатиях и действиях"
+    vibration="Вибрация"; vibrationDesc="Тактильный отклик при нажатиях и действий"
     autoReconnectNetwork="Переподключение при смене сети"; autoReconnectNetworkDesc="Автоматически пересобирать туннель при переключении Wi-Fi и мобильного интернета (все протоколы)"
     validateProxyDataPath="Проверять передачу данных через прокси"; validateProxyDataPathDesc="Проверять HTTPS через выбранный сервер перед включением VPN (запуск будет дольше)"
     copyAction="Копировать"
@@ -636,7 +630,7 @@ private val RU = LumenStrings().apply {
     disableAmnezia="Отключить совместимость с Amnezia"; disableAmneziaDesc="Убрать мусорные параметры и использовать сервер как обычный WireGuard"
     useProxyLabel="Использовать прокси"; proxyServerLabel="Прокси-сервер"
     proxyUsernameLabel="Логин прокси (опционально)"; proxyPasswordLabel="Пароль прокси (опционально)"
-    obfsProxyHint="obfsproxy работает внутри Lumen, отдельный бинарник не нужен"
+    obfsProxyHint="obfsproxy работает внутри Balochping, отдельный бинарник не нужен"
     openvpnConfigLabel="Конфиг OpenVPN (содержимое .ovpn)"
     autoNodeDescriptionLabel="Автовыбор лучших серверов"
     serverLabel="Сервер"; portLabel="Порт"; saveAction="Сохранить"
@@ -684,8 +678,8 @@ private val RU = LumenStrings().apply {
     ovpnKeyPasswordLabel="Пароль приватного ключа"
     ovpnKeyPasswordRequired="Приватный ключ зашифрован. Укажите пароль, иначе туннель не запустится."
     cameraPermissionTitle="Нужен доступ к камере"
-    cameraPermissionMessage="Для сканирования QR-кода нужна камера. Lumen использует её только пока открыт сканер."
-    cameraPermissionBlocked="Доступ к камере для Lumen отключён, поэтому сканер QR-кодов не запускается. Разрешите камеру в настройках приложения и повторите."
+    cameraPermissionMessage="Для сканирования QR-кода нужна камера. Balochping использует её только пока открыт сканер."
+    cameraPermissionBlocked="Доступ к камере для Balochping отключён, поэтому сканер QR-кодов не запускается. Разрешите камеру в настройках приложения и повторите."
     openAppSettings="Открыть настройки"
     newGroup="Новая группа"; groupNameLabel="Название группы"; createAction="Создать"
     renameGroup="Переименовать группу"; deleteGroup="Удалить группу"
@@ -696,7 +690,7 @@ private val RU = LumenStrings().apply {
 }
 
 private val ZH = LumenStrings().copyFrom(EN).apply {
-    resetLumen="重置 Lumen"; resetSettings="重置设置"; resetServers="删除服务器"
+    resetLumen="重置 Balochping"; resetSettings="重置设置"; resetServers="删除服务器"
     resetSettingsHint="恢复默认设置，保留服务器和订阅。"; resetServersHint="删除所有服务器、订阅和分组，保留设置。"
     resetWarning="连接将停止。此操作无法撤销。"; resetAction="重置"; resetComplete="重置完成"
     qrHint="将相机对准服务器或订阅二维码"; qrCameraError="相机不可用，请检查权限后重试。"; qrTorch="手电筒"
@@ -759,7 +753,7 @@ private val ZH = LumenStrings().copyFrom(EN).apply {
     checkUpdates="检查更新"; checkingUpdates="正在检查…"
     updateAvailable="有新的 Android 版本可用"; updateAvailableVersion="有可用更新 {version}"; upToDate="当前已是最新 Android 版本"
     downloadUpdate="下载更新"; updateCheckFailed="无法检查更新"; androidReleaseTag="Android 版本标签"
-    autoCheckUpdates="自动检查更新"; autoCheckUpdatesDesc="打开 Lumen 时检查 GitHub，每天最多一次"
+    autoCheckUpdates="自动检查更新"; autoCheckUpdatesDesc=""
     directLoad="直接加载"; directLoadDesc="绕过代理加载订阅"
     sendHwid="发送 HWID"; sendHwidDesc="在 X-Hwid 标头中发送设备 ID"
     allowOverrides="允许订阅覆盖"; allowOverridesDesc="应用兼容的 MUX、分片和路由参数"
@@ -875,7 +869,7 @@ private val ZH = LumenStrings().copyFrom(EN).apply {
     validateProxyDataPath="验证代理数据通路"; validateProxyDataPathDesc="启用 VPN 前通过所选服务器测试 HTTPS（启动会变慢）"
     disableAmnezia="禁用 Amnezia 兼容模式"; disableAmneziaDesc="移除混淆参数并作为普通 WireGuard 使用"
     useProxyLabel="使用代理"; proxyServerLabel="代理服务器"; proxyUsernameLabel="代理用户名（可选）"; proxyPasswordLabel="代理密码（可选）"
-    obfsProxyHint="obfsproxy 已内置于 Lumen，无需额外程序"
+    obfsProxyHint="obfsproxy 已内置于 Balochping，无需额外程序"
     pingAttemptsLabel="每台服务器的尝试次数"; pingAggregateLabel="尝试结果"; pingRetryDelayLabel="尝试间隔（毫秒）"
     pingThresholds="延迟颜色阈值"; pingGoodLabel="良好（毫秒以内）"; pingFairLabel="一般（毫秒以内）"
     pingUrlPresets="预设地址"; resetToDefaults="恢复默认值"; aggregateMin="最佳"; aggregateAvg="平均"; aggregateMedian="中位数"
@@ -910,8 +904,8 @@ private val ZH = LumenStrings().copyFrom(EN).apply {
     ovpnCredentialsRequired="此配置使用用户名和密码登录。两项都要填写，否则服务器会拒绝连接。"
     ovpnCertificateOnlyHint="仅证书配置：使用客户端证书认证，无需用户名和密码。"
     cameraPermissionTitle="需要相机权限"
-    cameraPermissionMessage="扫描二维码需要使用相机。Lumen 仅在扫描器打开时使用它。"
-    cameraPermissionBlocked="Lumen 的相机权限已被关闭，无法启动二维码扫描器。请在应用设置中允许相机权限后重试。"
+    cameraPermissionMessage="扫描二维码需要使用相机。Balochping 仅在扫描器打开时使用它。"
+    cameraPermissionBlocked="Balochping 的相机权限已被关闭，无法启动二维码扫描器。请在应用设置中允许相机权限后重试。"
     openAppSettings="打开设置"
     newGroup="新建分组"; groupNameLabel="分组名称"; createAction="创建"
     renameGroup="重命名分组"; deleteGroup="删除分组"
@@ -922,7 +916,7 @@ private val ZH = LumenStrings().copyFrom(EN).apply {
 }
 
 private val FA = LumenStrings().apply {
-    resetLumen="بازنشانی Lumen"; resetSettings="بازنشانی تنظیمات"; resetServers="حذف سرورها"
+    resetLumen="بازنشانی Balochping"; resetSettings="بازنشانی تنظیمات"; resetServers="حذف سرورها"
     resetSettingsHint="تنظیمات پیش‌فرض می‌شوند. سرورها و اشتراک‌ها حفظ می‌شوند."
     resetServersHint="همه سرورها، اشتراک‌ها و گروه‌ها حذف می‌شوند. تنظیمات حفظ می‌شوند."
     resetWarning="اتصال قطع می‌شود. این کار قابل بازگشت نیست."; resetAction="بازنشانی"; resetComplete="بازنشانی انجام شد"
@@ -986,7 +980,7 @@ private val FA = LumenStrings().apply {
     checkUpdates="بررسی به‌روزرسانی"; checkingUpdates="در حال بررسی…"
     updateAvailable="نسخه جدید Android موجود است"; updateAvailableVersion="به‌روزرسانی {version} موجود است"; upToDate="آخرین نسخه Android نصب است"
     downloadUpdate="دانلود به‌روزرسانی"; updateCheckFailed="بررسی به‌روزرسانی ناموفق بود"
-    autoCheckUpdates="بررسی خودکار به‌روزرسانی‌ها"; autoCheckUpdatesDesc="هنگام باز شدن Lumen، حداکثر روزی یک بار GitHub را بررسی کن"
+    autoCheckUpdates="بررسی خودکار به‌روزرسانی‌ها"; autoCheckUpdatesDesc=""
     androidReleaseTag="برچسب نسخه Android"
     directLoad="بارگیری مستقیم"; directLoadDesc="بارگیری اشتراک بدون استفاده از پروکسی"
     sendHwid="ارسال HWID"; sendHwidDesc="ارسال شناسه دستگاه در هدر X-Hwid"
@@ -1108,7 +1102,7 @@ private val FA = LumenStrings().apply {
     validateProxyDataPath="اعتبارسنجی مسیر داده پراکسی"; validateProxyDataPathDesc="آزمایش HTTPS از طریق سرور انتخاب‌شده پیش از فعال‌سازی VPN (راه‌اندازی کندتر می‌شود)"
     disableAmnezia="غیرفعال کردن سازگاری Amnezia"; disableAmneziaDesc="حذف پارامترهای اضافی و استفاده به‌صورت WireGuard معمولی"
     useProxyLabel="استفاده از پروکسی"; proxyServerLabel="سرور پروکسی"; proxyUsernameLabel="نام کاربری پروکسی (اختیاری)"; proxyPasswordLabel="گذرواژه پروکسی (اختیاری)"
-    obfsProxyHint="obfsproxy داخل Lumen اجرا می‌شود و برنامه جداگانه‌ای لازم نیست"
+    obfsProxyHint="obfsproxy داخل Balochping اجرا می‌شود و برنامه جداگانه‌ای لازم نیست"
     pingAttemptsLabel="تعداد تلاش برای هر سرور"; pingAggregateLabel="نتیجه تلاش‌ها"; pingRetryDelayLabel="فاصله بین تلاش‌ها (میلی‌ثانیه)"
     pingThresholds="رنگ‌بندی تأخیر"; pingGoodLabel="خوب تا (میلی‌ثانیه)"; pingFairLabel="متوسط تا (میلی‌ثانیه)"
     pingUrlPresets="نشانی‌های آماده"; resetToDefaults="بازنشانی به پیش‌فرض"; aggregateMin="بهترین"; aggregateAvg="میانگین"; aggregateMedian="میانه"
@@ -1143,8 +1137,8 @@ private val FA = LumenStrings().apply {
     ovpnCredentialsRequired="این پروفایل با نام کاربری و گذرواژه وارد می‌شود. هر دو را پر کنید؛ بدون آن‌ها سرور اتصال را رد می‌کند."
     ovpnCertificateOnlyHint="پروفایل فقط با گواهی: احراز هویت با گواهی کلاینت انجام می‌شود و نام کاربری یا گذرواژه لازم نیست."
     cameraPermissionTitle="دسترسی به دوربین لازم است"
-    cameraPermissionMessage="برای اسکن کد QR به دوربین نیاز است. Lumen فقط تا زمانی که اسکنر باز است از آن استفاده می‌کند."
-    cameraPermissionBlocked="دسترسی دوربین برای Lumen خاموش است، بنابراین اسکنر کد QR اجرا نمی‌شود. در تنظیمات برنامه دوربین را مجاز کنید و دوباره تلاش کنید."
+    cameraPermissionMessage="برای اسکن کد QR به دوربین نیاز است. Balochping فقط تا زمانی که اسکنر باز است از آن استفاده می‌کند."
+    cameraPermissionBlocked="دسترسی دوربین برای Balochping خاموش است، بنابراین اسکنر کد QR اجرا نمی‌شود. در تنظیمات برنامه دوربین را مجاز کنید و دوباره تلاش کنید."
     openAppSettings="باز کردن تنظیمات"
     newGroup="گروه جدید"; groupNameLabel="نام گروه"; createAction="ایجاد"
     renameGroup="تغییر نام گروه"; deleteGroup="حذف گروه"
@@ -1164,36 +1158,33 @@ fun stringsForLanguage(code: String): LumenStrings {
         "fa" -> FA
         else -> EN
     }
-    // Update installation was added after the original locale tables. Override the
-    // old "download" wording here so every language describes the real action:
-    // Android downloads, verifies and opens the system installer.
     when (normalized) {
         "ru" -> {
             strings.downloadUpdate = "Обновить"
             strings.downloadingUpdate = "Загрузка обновления\u2026"
             strings.updateInstallPermissionRequired =
-                "Разрешите установку приложений из Lumen и вернитесь назад, чтобы продолжить обновление"
+                "Разрешите установку приложений из Balochping и вернитесь назад, чтобы продолжить обновление"
             strings.updateInstallerUnavailable = "Системный установщик приложений недоступен"
         }
         "zh" -> {
             strings.downloadUpdate = "更新"
             strings.downloadingUpdate = "正在下载更新\u2026"
             strings.updateInstallPermissionRequired =
-                "请允许 Lumen 安装应用，然后返回以继续更新"
+                "请允许 Balochping 安装应用，然后返回以继续更新"
             strings.updateInstallerUnavailable = "Android 系统安装程序不可用"
         }
         "fa" -> {
             strings.downloadUpdate = "به\u200cروزرسانی"
             strings.downloadingUpdate = "در حال دانلود به\u200cروزرسانی\u2026"
             strings.updateInstallPermissionRequired =
-                "اجازه نصب برنامه\u200cها از Lumen را بدهید، سپس برای ادامه به\u200cروزرسانی بازگردید"
+                "اجازه نصب برنامه\u200cها از Balochping را بدهید، سپس برای ادامه به\u200cروزرسانی بازگردید"
             strings.updateInstallerUnavailable = "نصب\u200cکننده سیستم Android در دسترس نیست"
         }
         else -> {
             strings.downloadUpdate = "Update"
             strings.downloadingUpdate = "Downloading update\u2026"
             strings.updateInstallPermissionRequired =
-                "Allow Lumen to install apps, then return to continue the update"
+                "Allow Balochping to install apps, then return to continue the update"
             strings.updateInstallerUnavailable = "Android's package installer is unavailable"
         }
     }
