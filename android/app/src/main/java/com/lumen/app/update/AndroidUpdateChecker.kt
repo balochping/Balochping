@@ -1,4 +1,4 @@
-Package com.lumen.app.update
+package com.lumen.app.update
 
 import org.json.JSONArray
 import java.net.HttpURLConnection
@@ -25,14 +25,9 @@ internal data class AndroidUpdateState(
     val installRequestId: Long = 0L
 )
 
-/**
- * GitHub's `/releases/latest` belongs to the Windows release stream in this repository.
- * Android releases are selected exclusively by their `android-v…` tag.
- */
 internal object AndroidUpdateChecker {
     const val AUTO_CHECK_INTERVAL_MS = 24L * 60L * 60L * 1000L
     
-    // 🚀 آدرس گیت‌هاب به ریپازیتوری خودت تغییر کرد
     const val RELEASES_API =
         "https://api.github.com/repos/Balochping/android/releases?per_page=100"
 
@@ -47,17 +42,15 @@ internal object AndroidUpdateChecker {
             connection.readTimeout = 15_000
             connection.setRequestProperty("Accept", "application/vnd.github+json")
             connection.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
-            
-            // 🚀 اسم درخواست‌دهنده به برند خودت تغییر کرد
             connection.setRequestProperty("User-Agent", "Balochping-Android-Updater")
             
             val status = connection.responseCode
             if (status !in 200..299) {
-                throw IllegalStateException("GitHub returned HTTP $status")
+                throw IllegalStateException("به‌روزرسانی موجود نیست")
             }
             val body = connection.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
             return selectLatest(body, supportedAbis)
-                ?: throw IllegalStateException("No published Android release was found")
+                ?: throw IllegalStateException("به‌روزرسانی موجود نیست")
         } finally {
             connection.disconnect()
         }
@@ -85,8 +78,6 @@ internal object AndroidUpdateChecker {
                     },
                     supportedAbis
                 )
-                // A release page without an APK compatible with this device cannot
-                // be installed in-app and must not hide an older installable release.
                 if (apk == null) continue
                 add(
                     AndroidRelease(
