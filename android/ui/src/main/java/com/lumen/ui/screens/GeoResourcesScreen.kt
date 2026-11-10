@@ -1,7 +1,6 @@
 package com.lumen.ui.screens
 
 import androidx.compose.foundation.layout.Box
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -34,10 +33,10 @@ import androidx.compose.ui.unit.dp
 import java.text.DateFormat
 import java.util.Date
 
+private const val IRAN_GEO_SOURCE = "https://github.com/Chocolate4U/Iran-sing-box-rules/"
+
 private val GEO_SOURCES = listOf(
-    "https://github.com/Loyalsoldier/v2ray-rules-dat/",
-    "https://github.com/runetfreedom/russia-v2ray-rules-dat/",
-    "https://github.com/Chocolate4U/Iran-sing-box-rules/"
+    IRAN_GEO_SOURCE
 )
 
 @Composable
@@ -50,9 +49,7 @@ fun GeoResourcesScreen(
     modifier: Modifier = Modifier
 ) {
     val s = LocalStrings.current
-    // The dropdown is a pending choice. The active source is persisted only after all
-    // mandatory files for that region have downloaded successfully.
-    var selectedSource by remember(source) { mutableStateOf(source) }
+    var selectedSource by remember { mutableStateOf(IRAN_GEO_SOURCE) }
     Column(
         modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, bottom = 100.dp)
     ) {
@@ -66,21 +63,12 @@ fun GeoResourcesScreen(
             label = s.geoSourceLabel,
             options = GEO_SOURCES,
             selected = selectedSource,
-            onSelected = { if (!isUpdating) selectedSource = it },
-            optionLabel = { url ->
-                when {
-                    "loyalsoldier" in url.lowercase() -> "GLOBAL / CHINA  ·  Loyalsoldier"
-                    "chocolate4u" in url.lowercase() -> "IRAN  ·  Chocolate4U"
-                    else -> "RUSSIA  ·  runetfreedom"
-                }
-            }
+            onSelected = { if (!isUpdating) selectedSource = IRAN_GEO_SOURCE },
+            optionLabel = { "IRAN  ·  Chocolate4U" }
         )
         Spacer(Modifier.height(16.dp))
-        // The rule sets are what the core actually loads, so the button downloads
-        // them here instead of leaving the core to fetch them while it starts:
-        // a blocked or slow GitHub during startup aborted the whole connection.
         Button(
-            onClick = { onDownload(selectedSource) },
+            onClick = { onDownload(IRAN_GEO_SOURCE) },
             enabled = !isUpdating,
             shape = RoundedCornerShape(18.dp),
             modifier = Modifier.fillMaxWidth().height(54.dp)
@@ -118,8 +106,6 @@ fun GeoResourcesScreen(
     }
 }
 
-// Same card container as the rest of settings, so this screen no longer looks
-// like a separate tool bolted onto the app.
 @Composable
 private fun GeoResourceCard(resource: GeoResourceUiModel) {
     val art = com.lumen.ui.theme.expressivePalette()
