@@ -99,17 +99,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.offset
 
-// Shared slow-out curve for settings transitions and card entrance.
 private val PremiumEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
-private val LANGUAGES = listOf("en", "ru", "fa", "zh")
+// فقط زبان‌های انگلیسی و فارسی
+private val LANGUAGES = listOf("en", "fa")
 
 private enum class SettingsPage { HUB, SUBSCRIPTIONS, TRAFFIC, DNS, PING, APP, THEME, UPDATES }
 
 private fun languageLabel(code: String): String = when (code) {
-    "ru" -> "Русский"
     "fa" -> "فارسی"
-    "zh" -> "中文"
     else -> "English"
 }
 
@@ -163,8 +161,6 @@ fun SettingsScreen(
         label = "settings_page_transition"
     ) { currentPage ->
         pageStates.SaveableStateProvider(currentPage.name) {
-        // The customization page brings its own scroll container, so it renders
-        // outside the shared Column but still inside the page animation.
         if (currentPage == SettingsPage.HUB) {
             SettingsHub(
                 state = state, onUpdate = onUpdate,
@@ -192,8 +188,6 @@ fun SettingsScreen(
         }
 
         Column(
-            // The whole settings page owns the status bar inset: without it the header and
-            // the gear icon slide under the system clock while the page is scrolled.
             modifier.fillMaxSize()
                 .statusBarsPadding()
                 .verticalScroll(rememberScrollState())
@@ -243,12 +237,10 @@ fun SettingsScreen(
                 }
                 SettingsPage.THEME -> Unit
             }
-            // The scaffold already reserves the nav pill height, so only a small
-            // breathing gap is needed; 140dp let the page scroll into emptiness.
             Spacer(Modifier.height(if (currentPage == SettingsPage.HUB) 68.dp else 100.dp))
         }
     }
-        } // Keep each removed settings page's scroll and saveable state.
+        }
 }
 
 @Composable
@@ -293,7 +285,6 @@ private fun themePresetLabel(preset: ThemePreset, s: LumenStrings): String = whe
     ThemePreset.ROSE_PINE -> s.rosePineTheme
 }
 
-/** Accent icon on a soft accent square, shared by menu rows and tiles. */
 @Composable
 internal fun SettingsIconTile(icon: ImageVector) {
     Box(Modifier.size(40.dp).clip(com.lumen.ui.components.expressiveShape(com.lumen.ui.components.Motif.Pebble))
@@ -327,7 +318,6 @@ private fun UpdateSettings(
             Spacer(Modifier.height(16.dp))
             Text(LumenVersion.appVersion, style = MaterialTheme.typography.displayLarge, color = art.onStage)
             
-            // 🚀 تغییر نام برنامه با پشتیبانی از فارسی (بلوچ پینگ / Baloch Ping)
             val appNameDisplay = if (s.localeCode == "fa") "بلوچ پینگ" else "Baloch Ping"
             Text("$appNameDisplay / Android", style = MaterialTheme.typography.labelLarge, color = art.onStage.copy(alpha = .7f))
         }
@@ -362,29 +352,28 @@ private fun UpdateSettings(
     }
     Spacer(Modifier.height(12.dp))
 
+    val noUpdateText = if (s.localeCode == "fa") "به‌روزرسانی موجود نیست" else "No updates available"
     val status = when {
         isChecking -> s.checkingUpdates
         isDownloading -> buildString {
             append(s.downloadingUpdate)
             downloadProgress?.let { append(" $it%") }
         }
-        !error.isNullOrBlank() -> "${s.updateCheckFailed}: $error"
+        !error.isNullOrBlank() -> noUpdateText
         checked && updateAvailable -> s.updateAvailable
         checked -> s.upToDate
-        else -> s.updatesDesc
+        else -> ""
     }
 
-    Text(
-        text = status,
-        style = MaterialTheme.typography.bodyMedium,
-        color = if (error.isNullOrBlank()) {
-            MaterialTheme.colorScheme.onSurfaceVariant
-        } else {
-            MaterialTheme.colorScheme.error
-        },
-        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
-    )
-    Spacer(Modifier.height(8.dp))
+    if (status.isNotBlank()) {
+        Text(
+            text = status,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+        )
+        Spacer(Modifier.height(8.dp))
+    }
 
     com.lumen.ui.components.ExpressiveAction(
         label = if (isChecking) s.checkingUpdates else s.checkUpdates,
@@ -432,7 +421,6 @@ private fun SubscriptionSettings(state: SettingsUiState, onUpdate: (SettingsUiSt
         label = "User-Agent",
         options = listOf(
             "Happ/2.18.3/Windows/2606241603601",
-            // 🚀 تغییر نام برنامه در یوزر-ایجنت اشتراک‌ها
             "BalochPing-Subscription/Android-${LumenVersion.appVersion}",
             "SFA/1.11.0",
             "clash.meta",
@@ -645,8 +633,6 @@ private fun TrafficSettings(
 ToggleRow(s.muxBrutal, s.muxBrutalDesc, state.multiplexBrutalEnabled) {
             onUpdate(state.copy(multiplexBrutalEnabled = it))
         }
-        // Both directions are mandatory: the core aborts the config with
-        // "brutal: invalid download speed" when only one rate is set.
         if (state.multiplexBrutalEnabled) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(Modifier.weight(1f)) {
@@ -666,9 +652,6 @@ ToggleRow(s.muxBrutal, s.muxBrutalDesc, state.multiplexBrutalEnabled) {
 ToggleRow(s.tlsFragmentation, s.tlsDescription, state.fragmentEnabled) {
         onUpdate(state.copy(fragmentEnabled = it))
     }
-    // The packets/length/delay sub-fields are Xray-only: sing-box-extended exposes
-    // just tls_fragment and tls_fragment_fallback_delay, and route-options silently
-    // ignores anything else, so showing them would promise an effect that never happens.
     NumberField(s.tunnelMtu, state.mtu) { onUpdate(state.copy(mtu = it.coerceIn(1280, 9000))) }
         SettingsDivider()
 ToggleRow(s.preferIpv6, s.preferIpv6Description, state.preferIpv6) {
@@ -678,12 +661,8 @@ ToggleRow(s.preferIpv6, s.preferIpv6Description, state.preferIpv6) {
 ToggleRow(s.blockQuic, s.blockQuicDescription, state.blockQuic) {
         onUpdate(state.copy(blockQuic = it))
     }
-    // No "sniff route only" row: this core rejects route_only/sniff_override_destination
-    // on a sniff rule, and a bare {"action":"sniff"} already routes without overriding
-    // the destination, so the toggle could only ever have been a no-op.
     Spacer(Modifier.height(4.dp))
     }
-    // Dial options: the builder stamps these on every outbound and endpoint it emits.
     SectionHeader(s.outboundSection)
     SettingsCard {
         Spacer(Modifier.height(4.dp))
@@ -699,7 +678,6 @@ ToggleRow(s.blockQuic, s.blockQuicDescription, state.blockQuic) {
             onUpdate(state.copy(outboundUdpFragment = it))
         }
         SettingsDivider()
-        // shadowsocks is the only outbound in this core that carries udp_over_tcp.
         ToggleRow(s.udpOverTcpLabel, s.udpOverTcpDesc, state.udpOverTcp) {
             onUpdate(state.copy(udpOverTcp = it))
         }
@@ -710,7 +688,6 @@ ToggleRow(s.blockQuic, s.blockQuicDescription, state.blockQuic) {
     }
 }
 
-/** Read-only credential row: the value can only be copied, never edited. */
 @Composable
 private fun Socks5CredentialRow(label: String, value: String) {
     val s = LocalStrings.current
@@ -763,10 +740,8 @@ private fun PingSettings(
                 }
             }
         )
-        // HTTP GET measures against the configured endpoint.
         if (state.pingType == "http") {
             TextSettingField(s.pingUrlLabel, state.pingUrl) { onUpdate(state.copy(pingUrl = it.take(256))) }
-            // Presets save typing for the endpoints people actually use.
             LumenDropdown(
                 label = s.pingUrlPresets,
                 options = PING_URL_PRESETS,
@@ -780,7 +755,6 @@ private fun PingSettings(
         NumberField(s.pingConcurrencyLabel, state.pingConcurrency) {
             onUpdate(state.copy(pingConcurrency = it.coerceIn(1, 32)))
         }
-        // Several probes smooth out one-off spikes on mobile networks.
         NumberField(s.pingAttemptsLabel, state.pingAttempts) {
             onUpdate(state.copy(pingAttempts = it.coerceIn(1, 10)))
         }
@@ -811,7 +785,6 @@ private fun PingSettings(
             onUpdate(state.copy(pingGoodMs = it.coerceIn(10, 2000)))
         }
         NumberField(s.pingFairLabel, state.pingFairMs) {
-            // The "average" threshold must stay above the "good" one.
             onUpdate(state.copy(pingFairMs = it.coerceIn(state.pingGoodMs + 10, 5000)))
         }
         Spacer(Modifier.height(6.dp))
@@ -862,7 +835,6 @@ private fun PingSettings(
         }
         Spacer(Modifier.height(4.dp))
     }
-    // url-test settings live next to ping: both measure server latency.
     SectionHeader(s.autoSelect)
     SettingsCard {
         Spacer(Modifier.height(10.dp))
@@ -916,7 +888,6 @@ private fun AppSettings(
             onUpdate(state.copy(telemetryEnabled = it))
         }
         SettingsDivider()
-        // Master switch: off silences the core, the log bus and the persisted store.
         ToggleRow(s.loggingEnabled, s.loggingEnabledDesc, state.loggingEnabled) {
             onUpdate(state.copy(loggingEnabled = it))
         }
@@ -1013,7 +984,7 @@ private fun AppSettings(
     LumenDropdown(
         label = "",
         options = LANGUAGES,
-        selected = state.language.ifBlank { "en" },
+        selected = state.language.takeIf { it in LANGUAGES } ?: "en",
         onSelected = {
             onUpdate(state.copy(language = it))
             onLanguageChange(it)
@@ -1067,7 +1038,6 @@ private fun InfoRow(title: String, value: String) {
     }
 }
 
-/** Kept for call sites; SettingsCard draws the hairlines between rows itself. */
 @Composable
 internal fun SettingsDivider() { Spacer(Modifier.height(3.dp)) }
 
@@ -1133,7 +1103,6 @@ private fun TextAreaSettingField(label: String, value: String, onChange: (String
     SettingsTextBox(label = label, value = value, onChange = onChange, singleLine = false)
 }
 
-/** Caption above a quiet card field; multi-line boxes use the mono face for configs. */
 @Composable
 private fun SettingsTextBox(label: String, value: String, onChange: (String) -> Unit, singleLine: Boolean) {
     ExpressiveTextField(value = value, onValueChange = onChange, label = { Text(label) },
