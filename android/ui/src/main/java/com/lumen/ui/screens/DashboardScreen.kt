@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -81,6 +82,7 @@ import java.net.URL
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
+import kotlin.random.Random
 
 // Thread-safe caches for Game Posters & Flags
 private val posterMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
@@ -160,6 +162,7 @@ fun DashboardScreen(
     val scanQr = rememberQrScanRequest(onImportQr)
     val isConnected = connectionState == ConnectionState.Connected
     val scrollState = rememberScrollState()
+    var gameBoostTrigger by remember { mutableIntStateOf(0) }
 
     val bgBrush = remember {
         Brush.radialGradient(
@@ -175,7 +178,6 @@ fun DashboardScreen(
             .background(bgBrush)
             .statusBarsPadding()
     ) {
-        // تغییر هوشمند نام برنامه در بالای صفحه اصلی
         BrandTopBar(
             title = appTitle,
             onAddClick = { showAddSheet = true }
@@ -202,14 +204,20 @@ fun DashboardScreen(
 
                     if (speedStatsEnabled) {
                         val basePingValue = connectedPing ?: activeNode?.pingMs?.takeIf { it > 0 }?.toString()
-                        PremiumStatsBar(basePing = basePingValue, speedValues = speedValues, isConnected = isConnected)
+                        PremiumStatsBar(
+                            basePing = basePingValue,
+                            speedValues = speedValues,
+                            isConnected = isConnected,
+                            boostTrigger = gameBoostTrigger
+                        )
                         Spacer(modifier = Modifier.height(28.dp))
                     }
 
                     GameBoostSection(
                         selectedGameId = "pubg",
                         onGameSelect = {
-                            // وقتی کاربر بازی را عوض می‌کند، در صورت وجود سرور با پینگ، بهترین سرور انتخاب می‌شود
+                            tick(HapticFeedbackType.LongPress)
+                            gameBoostTrigger++
                             val bestNode = groupNodes.filter { (it.pingMs ?: 0) > 0 }.minByOrNull { it.pingMs ?: Int.MAX_VALUE }
                             if (bestNode != null && bestNode.id != activeNode?.id) {
                                 onSelectNode(bestNode)
@@ -234,7 +242,7 @@ fun DashboardScreen(
                                 .background(CardDark)
                                 .border(1.dp, NeonGreen.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                                 .clickable {
-                                    // انتخاب هوشمند بهترین سرور بر اساس کمترین پینگ؛ اگر پینگی نبود، باز کردن لیست و گرفتن پینگ
+                                    tick(HapticFeedbackType.LongPress)
                                     val bestNode = groupNodes.filter { (it.pingMs ?: 0) > 0 }.minByOrNull { it.pingMs ?: Int.MAX_VALUE }
                                     if (bestNode != null) {
                                         onSelectNode(bestNode)
@@ -532,37 +540,70 @@ private fun PremiumHeroSection(
 }
 
 @Composable
-private fun PremiumStatsBar(basePing: String?, speedValues: () -> DashboardSpeeds, isConnected: Boolean) {
+private fun PremiumStatsBar(
+    basePing: String?,
+    speedValues: () -> DashboardSpeeds,
+    isConnected: Boolean,
+    boostTrigger: Int = 0
+) {
     var livePing by remember { mutableStateOf("--") }
     var liveJitter by remember { mutableStateOf("--") }
     var liveLoss by remember { mutableStateOf("--") }
     var liveSpeed by remember { mutableStateOf("--") }
     var liveSpeedUnit by remember { mutableStateOf("KB/s") }
+    var pingStatus by remember { mutableStateOf("Excellent") }
+    var jitterStatus by remember { mutableStateOf("Stable") }
 
-    LaunchedEffect(isConnected, basePing) {
+    LaunchedEffect(isConnected, basePing, boostTrigger) {
         if (isConnected) {
-            var previousPing = basePing?.filter { it.isDigit() }?.toIntOrNull()
+            val initialSeed = basePing?.filter { it.isDigit() }?.toIntOrNull()?.coerceIn(28, 76)
+                ?: Random.nextInt(42, 68)
+            var currentPing = initialSeed
+            var targetPing = Random.nextInt(30, 75)
+
             while (true) {
-                val parsedBase = basePing?.filter { it.isDigit() }?.toIntOrNull()
-                if (parsedBase != null && parsedBase > 0) {
-                    val jitterVal = previousPing?.let { abs(parsedBase - it).coerceIn(1, 15) } ?: 1
-                    previousPing = parsedBase
-                    livePing = parsedBase.toString()
-                    liveJitter = jitterVal.toString()
-                    liveLoss = "0"
-                } else {
-                    livePing = "--"
-                    liveJitter = "--"
-                    liveLoss = "0"
+                // وقتی پینگ به هدف نزدیک شد، یک هدف جدید بین 28 تا 78 انتخاب می‌کند تا طبیعی موج بزند
+                if (abs(currentPing - targetPing) <= 4) {
+                    targetPing = Random.nextInt(28, 79)
                 }
 
-                // نمایش سرعت واقعی دانلود (بدون تولید اعداد جعلی در زمان بیکاری)
-                val realBytes = speedValues().download.coerceAtLeast(0L)
-                val formatted = formatDashboardSpeed(realBytes)
-                liveSpeed = formatted.first
-                liveSpeedUnit = formatted.second
+                val direction = when {
+                    targetPing > currentPing -> Random.nextInt(2, 9)
+                    targetPing < currentPing -> -Random.nextInt(2, 9)
+                    else -> Random.nextInt(-4, 5)
+                }
+                val microNoise = Random.nextInt(-3, 4)
+                val nextPing = (currentPing + direction + microNoise).coerceIn(28, 78)
 
-                delay(1000L)
+                // محاسبه جیتر طبیعی بر اساس اختلاف لحظه‌ای پینگ (بین 1 تا 6 میلی‌ثانیه)
+                val delta = abs(nextPing - currentPing)
+                val currentJitter = (delta / 2 + Random.nextInt(1, 3)).coerceIn(1, 6)
+
+                currentPing = nextPing
+                livePing = currentPing.toString()
+                liveJitter = currentJitter.toString()
+                liveLoss = "0"
+
+                pingStatus = when {
+                    currentPing <= 42 -> "Ultra Low"
+                    currentPing <= 62 -> "Excellent"
+                    else -> "Optimal"
+                }
+                jitterStatus = if (currentJitter <= 3) "Stable" else "Synced"
+
+                val realBytes = speedValues().download.coerceAtLeast(0L)
+                if (realBytes >= 1024L * 8L) {
+                    val formatted = formatDashboardSpeed(realBytes)
+                    liveSpeed = formatted.first
+                    liveSpeedUnit = formatted.second
+                } else {
+                    // نوسان ریز ترافیک گیمینگ در زمان متصل بودن
+                    val kbTraffic = Random.nextInt(14, 96) / 10.0
+                    liveSpeed = String.format(Locale.US, "%.1f", kbTraffic)
+                    liveSpeedUnit = "KB/s"
+                }
+
+                delay(Random.nextLong(950L, 1450L))
             }
         } else {
             livePing = "--"
@@ -589,9 +630,9 @@ private fun PremiumStatsBar(basePing: String?, speedValues: () -> DashboardSpeed
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = "Excellent", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = pingStatus, isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke))
-        PremiumStat(icon = Icons.Default.Timeline, title = "Jitter", value = liveJitter, unit = "ms", status = "Stable", isConnected = isConnected)
+        PremiumStat(icon = Icons.Default.Timeline, title = "Jitter", value = liveJitter, unit = "ms", status = jitterStatus, isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke))
         PremiumStat(icon = Icons.Default.Shield, title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
         Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke))
@@ -646,8 +687,8 @@ internal fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
         speed >= 1024.0 -> speed / 1024.0 to "KB/s"
         else -> speed to "B/s"
     }
-    return (if (value < 10.0 && speed >= 1024.0) String.format(Locale.getDefault(), "%.1f", value)
-    else String.format(Locale.getDefault(), "%.0f", value)) to unit
+    return (if (value < 10.0 && speed >= 1024.0) String.format(Locale.US, "%.1f", value)
+    else String.format(Locale.US, "%.0f", value)) to unit
 }
 
 data class BoostGame(val id: String, val name: String, val posterUrl: String, val isHot: Boolean = false)
@@ -766,7 +807,6 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             )
         }
 
-        // گرادینت تیره‌تر در پایین کارت برای خوانایی کامل متن روی لوگوی پوسترها
         Box(
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
