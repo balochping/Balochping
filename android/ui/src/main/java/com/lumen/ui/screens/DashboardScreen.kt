@@ -88,14 +88,13 @@ import kotlin.random.Random
 private val posterMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 private val flagMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 
-// === Premium Yellow & Neon Gaming Colors ===
-private val CyberYellow = Color(0xFFFFD600)
-private val NeonGreen = Color(0xFF00FF66)
-private val CyberPurple = Color(0xFFB026FF)
-private val CyberPurpleDark = Color(0xFF5A189A)
+// === Refined & Balanced Green / Purple Gaming Palette ===
+private val NeonGreen = Color(0xFF10E870)
+private val CyberPurple = Color(0xFF9D4EDD)
+private val CyberPurpleDark = Color(0xFF48147A)
 private val BgDark = Color(0xFF09090E)
-private val CardDark = Color(0xFF15151E)
-private val CardStroke = Color(0xFF252536)
+private val CardDark = Color(0xFF14141C)
+private val CardStroke = Color(0xFF232332)
 private val TextMuted = Color(0xFF8B93A5)
 
 @Composable
@@ -166,7 +165,7 @@ fun DashboardScreen(
 
     val bgBrush = remember {
         Brush.radialGradient(
-            colors = listOf(CyberPurpleDark.copy(alpha = 0.25f), BgDark),
+            colors = listOf(CyberPurpleDark.copy(alpha = 0.16f), BgDark),
             center = Offset(800f, 0f),
             radius = 1800f
         )
@@ -240,7 +239,7 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(CardDark)
-                                .border(1.dp, NeonGreen.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .border(1.dp, NeonGreen.copy(alpha = 0.38f), RoundedCornerShape(16.dp))
                                 .clickable {
                                     tick(HapticFeedbackType.LongPress)
                                     val bestNode = groupNodes.filter { (it.pingMs ?: 0) > 0 }.minByOrNull { it.pingMs ?: Int.MAX_VALUE }
@@ -270,8 +269,14 @@ fun DashboardScreen(
                                 .clip(serverShape)
                                 .background(CardDark)
                                 .border(
-                                    width = if (isConnected) 2.dp else 1.dp,
-                                    brush = Brush.horizontalGradient(listOf(NeonGreen, CyberPurple)),
+                                    width = if (isConnected) 1.5.dp else 1.dp,
+                                    brush = Brush.horizontalGradient(
+                                        if (isConnected) {
+                                            listOf(NeonGreen.copy(alpha = 0.65f), CyberPurple.copy(alpha = 0.55f))
+                                        } else {
+                                            listOf(CardStroke, CardStroke)
+                                        }
+                                    ),
                                     shape = serverShape
                                 )
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = openServerPicker)
@@ -352,7 +357,7 @@ fun DashboardScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = strings.changeServer,
-                                tint = if (isConnected) NeonGreen else Color.White,
+                                tint = if (isConnected) NeonGreen else Color.White.copy(alpha = 0.85f),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -414,16 +419,17 @@ private fun PremiumHeroSection(
     val scope = rememberCoroutineScope()
     val orbScale = remember { Animatable(1f) }
 
+    // هاله‌های نوری ملایم و کنترل‌شده (بدون درخشش بیش از حد)
     val purpleGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = CyberPurple.copy(alpha = 0.4f)
-            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(40f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            color = CyberPurple.copy(alpha = 0.20f)
+            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(26f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
     val greenGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = NeonGreen.copy(alpha = 0.5f)
-            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(20f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            color = NeonGreen.copy(alpha = 0.22f)
+            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(14f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
 
@@ -444,9 +450,13 @@ private fun PremiumHeroSection(
         Column(modifier = Modifier.weight(1f)) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (isConnected) NeonGreen.copy(alpha = 0.15f) else TextMuted.copy(alpha = 0.15f))
-                    .border(1.dp, if (isConnected) NeonGreen else TextMuted, RoundedCornerShape(6.dp))
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (isConnected) NeonGreen.copy(alpha = 0.10f) else TextMuted.copy(alpha = 0.12f))
+                    .border(
+                        1.dp,
+                        if (isConnected) NeonGreen.copy(alpha = 0.65f) else TextMuted.copy(alpha = 0.5f),
+                        RoundedCornerShape(8.dp)
+                    )
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -499,22 +509,26 @@ private fun PremiumHeroSection(
             if (isConnected || isConnecting) {
                 Box(
                     modifier = Modifier
-                        .size(140.dp)
+                        .size(138.dp)
                         .drawBehind {
                             drawIntoCanvas { canvas ->
                                 canvas.drawCircle(center, size.width / 2, purpleGlowPaint)
                             }
                         }
-                        .border(3.dp, CyberPurple, shape)
+                        .border(2.dp, CyberPurple.copy(alpha = 0.65f), shape)
                 )
             }
 
             Box(
                 modifier = Modifier
-                    .size(110.dp)
+                    .size(108.dp)
                     .clip(shape)
                     .background(BgDark)
-                    .border(4.dp, if (isConnected) NeonGreen else CardStroke, shape)
+                    .border(
+                        width = if (isConnected) 2.5.dp else 2.dp,
+                        color = if (isConnected) NeonGreen.copy(alpha = 0.85f) else CardStroke,
+                        shape = shape
+                    )
                     .drawBehind {
                         if (isConnected) {
                             drawIntoCanvas { canvas ->
@@ -530,8 +544,8 @@ private fun PremiumHeroSection(
                     Icon(
                         Icons.Default.PowerSettingsNew,
                         contentDescription = null,
-                        tint = if (isConnected) NeonGreen else Color.White,
-                        modifier = Modifier.size(42.dp)
+                        tint = if (isConnected) NeonGreen else Color.White.copy(alpha = 0.9f),
+                        modifier = Modifier.size(40.dp)
                     )
                 }
             }
@@ -562,7 +576,6 @@ private fun PremiumStatsBar(
             var targetPing = Random.nextInt(30, 75)
 
             while (true) {
-                // وقتی پینگ به هدف نزدیک شد، یک هدف جدید بین 28 تا 78 انتخاب می‌کند تا طبیعی موج بزند
                 if (abs(currentPing - targetPing) <= 4) {
                     targetPing = Random.nextInt(28, 79)
                 }
@@ -575,7 +588,6 @@ private fun PremiumStatsBar(
                 val microNoise = Random.nextInt(-3, 4)
                 val nextPing = (currentPing + direction + microNoise).coerceIn(28, 78)
 
-                // محاسبه جیتر طبیعی بر اساس اختلاف لحظه‌ای پینگ (بین 1 تا 6 میلی‌ثانیه)
                 val delta = abs(nextPing - currentPing)
                 val currentJitter = (delta / 2 + Random.nextInt(1, 3)).coerceIn(1, 6)
 
@@ -597,7 +609,6 @@ private fun PremiumStatsBar(
                     liveSpeed = formatted.first
                     liveSpeedUnit = formatted.second
                 } else {
-                    // نوسان ریز ترافیک گیمینگ در زمان متصل بودن
                     val kbTraffic = Random.nextInt(14, 96) / 10.0
                     liveSpeed = String.format(Locale.US, "%.1f", kbTraffic)
                     liveSpeedUnit = "KB/s"
@@ -622,8 +633,14 @@ private fun PremiumStatsBar(
             .clip(barShape)
             .background(CardDark)
             .border(
-                width = 1.5.dp,
-                brush = Brush.horizontalGradient(listOf(if (isConnected) NeonGreen else CardStroke, if (isConnected) CyberPurple else CardStroke)),
+                width = 1.2.dp,
+                brush = Brush.horizontalGradient(
+                    if (isConnected) {
+                        listOf(NeonGreen.copy(alpha = 0.6f), CyberPurple.copy(alpha = 0.5f))
+                    } else {
+                        listOf(CardStroke, CardStroke)
+                    }
+                ),
                 shape = barShape
             )
             .padding(vertical = 16.dp, horizontal = 12.dp),
@@ -666,9 +683,9 @@ private fun PremiumStat(
         if (isConnected) {
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(10.dp))
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = NeonGreen.copy(alpha = 0.85f), modifier = Modifier.size(10.dp))
                 Spacer(modifier = Modifier.width(2.dp))
-                Text(status, color = NeonGreen, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text(status, color = NeonGreen.copy(alpha = 0.85f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -742,10 +759,11 @@ fun GameBoostSection(
 @Composable
 private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick: () -> Unit) {
     var posterBitmap by remember(game.id) { mutableStateOf(posterMemoryCache[game.id]) }
+    // درخشش ملایم و محدود فقط برای کارت انتخاب‌شده
     val cardGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = NeonGreen.copy(alpha = 0.55f)
-            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(45f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            color = NeonGreen.copy(alpha = 0.22f)
+            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(20f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
 
@@ -778,7 +796,8 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
     }
 
     val posterShape = RoundedCornerShape(16.dp)
-    val borderColor = if (isSelected) NeonGreen else CardStroke
+    // حاشیه سبز فقط برای بازی انتخاب‌شده روشن می‌شود
+    val borderColor = if (isSelected) NeonGreen.copy(alpha = 0.85f) else CardStroke.copy(alpha = 0.7f)
 
     Box(
         modifier = Modifier
@@ -795,7 +814,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             )
             .clip(posterShape)
             .background(CardDark)
-            .border(if (isSelected) 2.5.dp else 1.dp, borderColor, posterShape)
+            .border(if (isSelected) 1.8.dp else 1.dp, borderColor, posterShape)
             .clickable(onClick = onClick)
     ) {
         if (posterBitmap != null) {
@@ -810,7 +829,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         Box(
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    0.0f to CyberPurple.copy(alpha = 0.1f),
+                    0.0f to CyberPurple.copy(alpha = 0.06f),
                     0.45f to Color.Transparent,
                     0.75f to Color.Black.copy(alpha = 0.85f),
                     1.0f to Color.Black.copy(alpha = 0.98f)
@@ -819,7 +838,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         )
 
         if (!isSelected) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.42f)))
         }
 
         if (isSelected) {
@@ -828,14 +847,14 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                 contentAlignment = Alignment.TopEnd
             ) {
                 Box(
-                    modifier = Modifier.size(24.dp).background(Color.White, CircleShape),
+                    modifier = Modifier.size(22.dp).background(NeonGreen.copy(alpha = 0.9f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
-                        tint = NeonGreen,
-                        modifier = Modifier.size(18.dp)
+                        tint = BgDark,
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -860,8 +879,12 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isSelected) NeonGreen.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.6f))
-                    .border(1.dp, if (isSelected) NeonGreen else TextMuted.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .background(if (isSelected) NeonGreen.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.6f))
+                    .border(
+                        1.dp,
+                        if (isSelected) NeonGreen.copy(alpha = 0.65f) else TextMuted.copy(alpha = 0.25f),
+                        RoundedCornerShape(12.dp)
+                    )
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
