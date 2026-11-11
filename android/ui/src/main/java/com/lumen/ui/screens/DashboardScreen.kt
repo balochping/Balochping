@@ -88,14 +88,54 @@ import kotlin.random.Random
 private val posterMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 private val flagMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 
-// === Matte Gaming Yellow Palette ===
+// === Frosted Glass & Matte Gold Gaming Palette ===
 private val MatteYellow = Color(0xFFE5B80B)
 private val MatteAmber = Color(0xFFB37D14)
-private val MatteGoldDark = Color(0xFF4A3708)
-private val BgDark = Color(0xFF0B0B0E)
-private val CardDark = Color(0xFF151519)
-private val CardStroke = Color(0xFF282621)
-private val TextMuted = Color(0xFF94928B)
+private val BgDark = Color(0xFF07080C)
+private val GlassHighlight = Color(0x24FFFFFF)
+private val GlassSurfaceTop = Color(0x1AFFFFFF)
+private val GlassSurfaceBottom = Color(0x08FFFFFF)
+private val GlassBorderLight = Color(0x38FFFFFF)
+private val GlassBorderDim = Color(0x0DFFFFFF)
+private val TextMuted = Color(0xFF9E9FA8)
+
+private fun frostedGlassBrush(isActive: Boolean = false): Brush = if (isActive) {
+    Brush.linearGradient(
+        colors = listOf(
+            MatteYellow.copy(alpha = 0.16f),
+            GlassSurfaceTop,
+            GlassSurfaceBottom
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(900f, 900f)
+    )
+} else {
+    Brush.linearGradient(
+        colors = listOf(
+            GlassSurfaceTop,
+            GlassSurfaceBottom
+        ),
+        start = Offset(0f, 0f),
+        end = Offset(800f, 800f)
+    )
+}
+
+private fun frostedBorderBrush(isActive: Boolean = false): Brush = if (isActive) {
+    Brush.linearGradient(
+        colors = listOf(
+            MatteYellow.copy(alpha = 0.85f),
+            GlassBorderLight,
+            MatteAmber.copy(alpha = 0.45f)
+        )
+    )
+} else {
+    Brush.linearGradient(
+        colors = listOf(
+            GlassBorderLight,
+            GlassBorderDim
+        )
+    )
+}
 
 @Composable
 fun DashboardScreen(
@@ -163,11 +203,16 @@ fun DashboardScreen(
     val scrollState = rememberScrollState()
     var gameBoostTrigger by remember { mutableIntStateOf(0) }
 
+    // Ambient background glow that shines through the frosted glass cards
     val bgBrush = remember {
         Brush.radialGradient(
-            colors = listOf(MatteGoldDark.copy(alpha = 0.28f), BgDark),
-            center = Offset(800f, 0f),
-            radius = 1800f
+            colors = listOf(
+                Color(0xFF2B2210),
+                Color(0xFF12131A),
+                BgDark
+            ),
+            center = Offset(700f, 150f),
+            radius = 1600f
         )
     }
 
@@ -231,15 +276,15 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Layers, contentDescription = null, tint = MatteAmber, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Layers, contentDescription = null, tint = MatteYellow, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(text = "Server", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color.White)
                         }
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(CardDark)
-                                .border(1.dp, MatteYellow.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .background(frostedGlassBrush(isActive = true))
+                                .border(1.dp, frostedBorderBrush(isActive = true), RoundedCornerShape(16.dp))
                                 .clickable {
                                     tick(HapticFeedbackType.LongPress)
                                     val bestNode = groupNodes.filter { (it.pingMs ?: 0) > 0 }.minByOrNull { it.pingMs ?: Int.MAX_VALUE }
@@ -261,16 +306,16 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     if (activeNode != null) {
-                        val serverShape = RoundedCornerShape(20.dp)
+                        val serverShape = RoundedCornerShape(22.dp)
 
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(serverShape)
-                                .background(CardDark)
+                                .background(frostedGlassBrush(isActive = isConnected))
                                 .border(
-                                    width = if (isConnected) 2.dp else 1.dp,
-                                    brush = Brush.horizontalGradient(listOf(MatteYellow, MatteAmber)),
+                                    width = 1.2.dp,
+                                    brush = frostedBorderBrush(isActive = isConnected),
                                     shape = serverShape
                                 )
                                 .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = openServerPicker)
@@ -351,7 +396,7 @@ fun DashboardScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = strings.changeServer,
-                                tint = if (isConnected) MatteYellow else Color.White,
+                                tint = if (isConnected) MatteYellow else Color.White.copy(alpha = 0.8f),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -359,9 +404,9 @@ fun DashboardScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(CardDark)
-                                .border(1.dp, CardStroke, RoundedCornerShape(20.dp))
+                                .clip(RoundedCornerShape(22.dp))
+                                .background(frostedGlassBrush(isActive = false))
+                                .border(1.dp, frostedBorderBrush(isActive = false), RoundedCornerShape(22.dp))
                                 .clickable(onClick = openServerPicker)
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
@@ -413,16 +458,10 @@ private fun PremiumHeroSection(
     val scope = rememberCoroutineScope()
     val orbScale = remember { Animatable(1f) }
 
-    val amberGlowPaint = remember {
+    val frostedGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = MatteAmber.copy(alpha = 0.28f)
-            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(32f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-        }
-    }
-    val yellowGlowPaint = remember {
-        androidx.compose.ui.graphics.Paint().apply {
-            color = MatteYellow.copy(alpha = 0.35f)
-            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(18f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            color = MatteYellow.copy(alpha = 0.24f)
+            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(36f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
 
@@ -443,17 +482,17 @@ private fun PremiumHeroSection(
         Column(modifier = Modifier.weight(1f)) {
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(if (isConnected) MatteYellow.copy(alpha = 0.14f) else TextMuted.copy(alpha = 0.12f))
-                    .border(1.dp, if (isConnected) MatteYellow else TextMuted, RoundedCornerShape(6.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(frostedGlassBrush(isActive = isConnected))
+                    .border(1.dp, frostedBorderBrush(isActive = isConnected), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Shield, contentDescription = null, tint = if (isConnected) MatteYellow else TextMuted, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         if (isConnected) "Protected" else "Not Connected",
-                        color = if (isConnected) MatteYellow else TextMuted,
+                        color = if (isConnected) MatteYellow else Color.White.copy(alpha = 0.85f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -478,7 +517,7 @@ private fun PremiumHeroSection(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                "Ultra Low Ping\nfor the Best Experience",
+                "Frosted Glass Edition\nUltra Low Ping Experience",
                 color = TextMuted,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium,
@@ -495,32 +534,51 @@ private fun PremiumHeroSection(
         ) {
             val shape = CircleShape
 
-            if (isConnected || isConnecting) {
-                Box(
-                    modifier = Modifier
-                        .size(140.dp)
-                        .drawBehind {
-                            drawIntoCanvas { canvas ->
-                                canvas.drawCircle(center, size.width / 2, amberGlowPaint)
-                            }
-                        }
-                        .border(2.5.dp, MatteAmber.copy(alpha = 0.85f), shape)
-                )
-            }
-
+            // Outer Frosted Glass Ring
             Box(
                 modifier = Modifier
-                    .size(110.dp)
-                    .clip(shape)
-                    .background(BgDark)
-                    .border(3.5.dp, if (isConnected) MatteYellow else CardStroke, shape)
+                    .size(142.dp)
                     .drawBehind {
-                        if (isConnected) {
+                        if (isConnected || isConnecting) {
                             drawIntoCanvas { canvas ->
-                                canvas.drawCircle(center, size.width / 2, yellowGlowPaint)
+                                canvas.drawCircle(center, size.width / 2, frostedGlowPaint)
                             }
                         }
-                    },
+                    }
+                    .clip(shape)
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                GlassHighlight,
+                                GlassSurfaceBottom
+                            )
+                        )
+                    )
+                    .border(1.5.dp, frostedBorderBrush(isActive = isConnected || isConnecting), shape)
+            )
+
+            // Inner Frosted Core Button
+            Box(
+                modifier = Modifier
+                    .size(108.dp)
+                    .clip(shape)
+                    .background(
+                        Brush.linearGradient(
+                            colors = if (isConnected) {
+                                listOf(
+                                    MatteYellow.copy(alpha = 0.25f),
+                                    Color(0x33FFFFFF),
+                                    Color(0x14FFFFFF)
+                                )
+                            } else {
+                                listOf(
+                                    Color(0x26FFFFFF),
+                                    Color(0x0DFFFFFF)
+                                )
+                            }
+                        )
+                    )
+                    .border(2.dp, frostedBorderBrush(isActive = isConnected), shape),
                 contentAlignment = Alignment.Center
             ) {
                 if (isConnecting) {
@@ -610,28 +668,28 @@ private fun PremiumStatsBar(
         }
     }
 
-    val barShape = RoundedCornerShape(16.dp)
+    val barShape = RoundedCornerShape(22.dp)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(barShape)
-            .background(CardDark)
+            .background(frostedGlassBrush(isActive = isConnected))
             .border(
-                width = 1.5.dp,
-                brush = Brush.horizontalGradient(listOf(if (isConnected) MatteYellow else CardStroke, if (isConnected) MatteAmber else CardStroke)),
+                width = 1.2.dp,
+                brush = frostedBorderBrush(isActive = isConnected),
                 shape = barShape
             )
-            .padding(vertical = 16.dp, horizontal = 12.dp),
+            .padding(vertical = 18.dp, horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         PremiumStat(icon = Icons.Default.WifiTethering, title = "Ping", value = livePing, unit = "ms", status = pingStatus, isConnected = isConnected)
-        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke))
+        Box(modifier = Modifier.width(1.dp).height(40.dp).background(GlassBorderLight))
         PremiumStat(icon = Icons.Default.Timeline, title = "Jitter", value = liveJitter, unit = "ms", status = jitterStatus, isConnected = isConnected)
-        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke))
+        Box(modifier = Modifier.width(1.dp).height(40.dp).background(GlassBorderLight))
         PremiumStat(icon = Icons.Default.Shield, title = "Loss", value = liveLoss, unit = "%", status = "Perfect", isConnected = isConnected)
-        Box(modifier = Modifier.width(1.dp).height(40.dp).background(CardStroke))
+        Box(modifier = Modifier.width(1.dp).height(40.dp).background(GlassBorderLight))
         PremiumStat(icon = Icons.Default.Download, title = "Download", value = liveSpeed, unit = liveSpeedUnit, status = "Fast", isConnected = isConnected)
     }
 }
@@ -716,7 +774,7 @@ fun GameBoostSection(
                 Spacer(Modifier.width(8.dp))
                 Text("Select Your Game", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
-            Text("Game Profiles >", color = MatteAmber, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text("Game Profiles >", color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(Modifier.height(16.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -740,8 +798,8 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
     var posterBitmap by remember(game.id) { mutableStateOf(posterMemoryCache[game.id]) }
     val cardGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = MatteYellow.copy(alpha = 0.35f)
-            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(32f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            color = MatteYellow.copy(alpha = 0.28f)
+            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(28f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
 
@@ -773,8 +831,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         }
     }
 
-    val posterShape = RoundedCornerShape(16.dp)
-    val borderColor = if (isSelected) MatteYellow else CardStroke
+    val posterShape = RoundedCornerShape(18.dp)
 
     Box(
         modifier = Modifier
@@ -784,14 +841,14 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                 if (isSelected) {
                     Modifier.drawBehind {
                         drawIntoCanvas { canvas ->
-                            canvas.drawRoundRect(0f, 0f, size.width, size.height, 16.dp.toPx(), 16.dp.toPx(), cardGlowPaint)
+                            canvas.drawRoundRect(0f, 0f, size.width, size.height, 18.dp.toPx(), 18.dp.toPx(), cardGlowPaint)
                         }
                     }
                 } else Modifier
             )
             .clip(posterShape)
-            .background(CardDark)
-            .border(if (isSelected) 2.dp else 1.dp, borderColor, posterShape)
+            .background(frostedGlassBrush(isActive = isSelected))
+            .border(if (isSelected) 1.8.dp else 1.dp, frostedBorderBrush(isActive = isSelected), posterShape)
             .clickable(onClick = onClick)
     ) {
         if (posterBitmap != null) {
@@ -803,19 +860,20 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             )
         }
 
+        // Frosted dark bottom overlay for crisp text readability
         Box(
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    0.0f to MatteGoldDark.copy(alpha = 0.15f),
-                    0.45f to Color.Transparent,
-                    0.75f to Color.Black.copy(alpha = 0.85f),
-                    1.0f to Color.Black.copy(alpha = 0.98f)
+                    0.0f to Color.White.copy(alpha = 0.08f),
+                    0.40f to Color.Transparent,
+                    0.72f to Color(0xCC0B0C10),
+                    1.0f to Color(0xF20B0C10)
                 )
             )
         )
 
         if (!isSelected) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.35f)))
         }
 
         if (isSelected) {
@@ -824,14 +882,18 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                 contentAlignment = Alignment.TopEnd
             ) {
                 Box(
-                    modifier = Modifier.size(24.dp).background(MatteYellow, CircleShape),
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(CircleShape)
+                        .background(MatteYellow)
+                        .border(1.dp, Color.White.copy(alpha = 0.6f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Check,
                         contentDescription = null,
                         tint = BgDark,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                 }
             }
@@ -853,24 +915,32 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             )
             Spacer(Modifier.height(6.dp))
 
+            // Frosted Glass Pill inside Game Card
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isSelected) MatteYellow.copy(alpha = 0.18f) else Color.Black.copy(alpha = 0.6f))
-                    .border(1.dp, if (isSelected) MatteYellow else TextMuted.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .background(
+                        if (isSelected) MatteYellow.copy(alpha = 0.22f)
+                        else Color.White.copy(alpha = 0.10f)
+                    )
+                    .border(
+                        1.dp,
+                        if (isSelected) MatteYellow.copy(alpha = 0.8f) else GlassBorderLight,
+                        RoundedCornerShape(12.dp)
+                    )
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     Icons.Default.Bolt,
                     contentDescription = null,
-                    tint = if (isSelected) MatteYellow else TextMuted,
+                    tint = if (isSelected) MatteYellow else Color.White.copy(alpha = 0.75f),
                     modifier = Modifier.size(13.dp)
                 )
                 Spacer(Modifier.width(2.dp))
                 Text(
                     text = "Optimized",
-                    color = if (isSelected) MatteYellow else TextMuted,
+                    color = if (isSelected) MatteYellow else Color.White.copy(alpha = 0.75f),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold
                 )
