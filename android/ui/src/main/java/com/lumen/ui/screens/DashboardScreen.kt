@@ -7,18 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -26,39 +15,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Bolt
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.PowerSettingsNew
-import androidx.compose.material.icons.filled.Shield
-import androidx.compose.material.icons.filled.Timeline
-import androidx.compose.material.icons.filled.VideogameAsset
-import androidx.compose.material.icons.filled.WifiTethering
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.SpanStyle
@@ -69,10 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lumen.ui.components.AddServerSheet
-import com.lumen.ui.components.BrandTopBar
-import com.lumen.ui.components.ConnectionState
-import com.lumen.ui.components.CountryFlagHelper
+import com.lumen.ui.components.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -84,18 +50,40 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.random.Random
 
-// Thread-safe caches
+// ==================== CACHES ====================
 private val posterMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 private val flagMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 
-// Colors
-private val ActiveGreen = Color(0xFF10E870)
-private val GamingYellow = Color(0xFFE5B80B)
-private val GamingAmber = Color(0xFFB37D14)
-private val BgDark = Color(0xFF060608)
-private val CardDark = Color(0xFF111116)
-private val CardStroke = Color(0xFF22222A)
-private val TextMuted = Color(0xFF8E929F)
+// ==================== COLORS ====================
+private val ActiveGreen = Color(0xFF00E676)
+private val GamingYellow = Color(0xFFFFC107)
+private val GamingAmber = Color(0xFFFF9800)
+private val BgDark = Color(0xFF08080A)
+private val CardDark = Color(0xFF121216)
+private val CardStroke = Color(0xFF25252E)
+private val TextMuted = Color(0xFF8B8B9A)
+private val TextDim = Color(0xFF5C5C6A)
+
+// ==================== DATA ====================
+data class BoostGame(
+    val id: String,
+    val name: String,
+    val posterUrl: String,
+    val isHot: Boolean = false
+)
+
+// ==================== HELPERS ====================
+internal fun formatDashboardSpeed(bytesPerSecond: Long): Pair<String, String> {
+    val speed = bytesPerSecond.coerceAtLeast(0L).toDouble()
+    val (value, unit) = when {
+        speed >= 1024.0 * 1024.0 * 1024.0 -> speed / (1024.0 * 1024.0 * 1024.0) to "GB/s"
+        speed >= 1024.0 * 1024.0 -> speed / (1024.0 * 1024.0) to "MB/s"
+        speed >= 1024.0 -> speed / 1024.0 to "KB/s"
+        else -> speed to "B/s"
+    }
+    return (if (value < 10.0 && speed >= 1024.0) String.format(Locale.US, "%.1f", value)
+    else String.format(Locale.US, "%.0f", value)) to unit
+}
 
 @Composable
 fun DashboardScreen(
@@ -166,16 +154,16 @@ fun DashboardScreen(
 
     LaunchedEffect(isConnected, activeNode?.id) {
         if (isConnected && connectedPing == null && !isCheckingPing) {
-            delay(1200L)
+            delay(1100L)
             onCheckPing()
         }
     }
 
     val bgBrush = remember {
         Brush.radialGradient(
-            colors = listOf(Color(0xFF14141A), BgDark),
-            center = Offset(800f, 0f),
-            radius = 1600f
+            colors = listOf(Color(0xFF16161C), BgDark),
+            center = Offset(0.7f, 0.05f),
+            radius = 1400f
         )
     }
 
@@ -206,9 +194,10 @@ fun DashboardScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 4.dp, bottom = 12.dp)
                 ) {
-                    // ===== Hero =====
+                    // HERO
                     PremiumHeroSection(
                         connectionState = connectionState,
                         isFa = isFa,
@@ -216,11 +205,13 @@ fun DashboardScreen(
                         tick = tick
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(Modifier.height(22.dp))
 
-                    // ===== Stats =====
+                    // STATS
                     if (speedStatsEnabled) {
-                        val basePingValue = connectedPing ?: activeNode?.pingMs?.takeIf { it > 0 }?.toString()
+                        val basePingValue = connectedPing
+                            ?: activeNode?.pingMs?.takeIf { it > 0 }?.toString()
+
                         PremiumStatsBar(
                             basePing = basePingValue,
                             speedValues = speedValues,
@@ -235,10 +226,10 @@ fun DashboardScreen(
                                 }
                             }
                         )
-                        Spacer(modifier = Modifier.height(22.dp))
+                        Spacer(Modifier.height(24.dp))
                     }
 
-                    // ===== Games =====
+                    // GAMES
                     GameBoostSection(
                         selectedGameId = "pubg",
                         isConnected = isConnected,
@@ -256,13 +247,11 @@ fun DashboardScreen(
                         }
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(Modifier.height(22.dp))
 
-                    // ===== Server Header =====
+                    // SERVER HEADER
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 2.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -273,7 +262,7 @@ fun DashboardScreen(
                                 tint = themeAccent,
                                 modifier = Modifier.size(18.dp)
                             )
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(7.dp))
                             Text(
                                 text = if (isFa) "سرور" else "Server",
                                 fontSize = 15.sp,
@@ -284,9 +273,9 @@ fun DashboardScreen(
 
                         Row(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(CardDark)
-                                .border(1.dp, themeAccent.copy(alpha = 0.5f), RoundedCornerShape(14.dp))
+                                .border(1.dp, themeAccent.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
                                 .clickable {
                                     tick(HapticFeedbackType.LongPress)
                                     val bestNode = groupNodes
@@ -318,159 +307,23 @@ fun DashboardScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
 
-                    // ===== Active Server Card =====
+                    // SERVER CARD
                     if (activeNode != null) {
-                        val serverShape = RoundedCornerShape(18.dp)
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(serverShape)
-                                .background(CardDark)
-                                .border(
-                                    width = 1.4.dp,
-                                    brush = Brush.horizontalGradient(
-                                        if (isConnected) {
-                                            listOf(
-                                                ActiveGreen.copy(alpha = 0.85f),
-                                                ActiveGreen.copy(alpha = 0.4f)
-                                            )
-                                        } else {
-                                            listOf(
-                                                GamingYellow.copy(alpha = 0.8f),
-                                                GamingAmber.copy(alpha = 0.4f)
-                                            )
-                                        }
-                                    ),
-                                    shape = serverShape
-                                )
-                                .clickable(onClick = openServerPicker)
-                                .padding(horizontal = 16.dp, vertical = 14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Flag
-                            Box(
-                                modifier = Modifier
-                                    .width(42.dp)
-                                    .height(28.dp)
-                            ) {
-                                val countryCode = activeNode.countryCode.trim().lowercase()
-                                var flagBitmap by remember(countryCode) {
-                                    mutableStateOf(flagMemoryCache[countryCode])
-                                }
-                                val flagEmoji = remember(countryCode) {
-                                    CountryFlagHelper.getServerFlagEmoji(activeNode.countryCode)
-                                }
-
-                                LaunchedEffect(countryCode) {
-                                    if (flagBitmap == null && countryCode.isNotBlank()) {
-                                        withContext(Dispatchers.IO) {
-                                            var connection: HttpURLConnection? = null
-                                            try {
-                                                val url = URL("https://flagcdn.com/w80/$countryCode.png")
-                                                connection = (url.openConnection() as HttpURLConnection).apply {
-                                                    connectTimeout = 3000
-                                                    readTimeout = 3000
-                                                    doInput = true
-                                                    connect()
-                                                }
-                                                if (connection.responseCode in 200..299) {
-                                                    val bmp = connection.inputStream.use {
-                                                        BitmapFactory.decodeStream(it)
-                                                    }
-                                                    if (bmp != null) {
-                                                        val imageBitmap = bmp.asImageBitmap()
-                                                        flagMemoryCache[countryCode] = imageBitmap
-                                                        flagBitmap = imageBitmap
-                                                    }
-                                                }
-                                            } catch (_: Exception) {
-                                            } finally {
-                                                connection?.disconnect()
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (flagBitmap != null) {
-                                    Image(
-                                        bitmap = flagBitmap!!,
-                                        contentDescription = activeNode.countryCode,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(5.dp))
-                                    )
-                                } else {
-                                    Text(
-                                        text = flagEmoji,
-                                        fontSize = 22.sp,
-                                        modifier = Modifier.align(Alignment.Center)
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.width(14.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = activeNode.name,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-
-                                    // Show ping if available
-                                    val ping = activeNode.pingMs
-                                    if (ping != null && ping > 0) {
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            text = "${ping}ms",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = themeAccent.copy(alpha = 0.9f)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(5.dp))
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.Shield,
-                                        contentDescription = null,
-                                        tint = themeAccent,
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Text(
-                                        text = activeNode.displayProtocol,
-                                        fontSize = 12.sp,
-                                        color = TextMuted,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-
-                            Icon(
-                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = null,
-                                tint = themeAccent,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
+                        PremiumServerCard(
+                            node = activeNode,
+                            isConnected = isConnected,
+                            themeAccent = themeAccent,
+                            onClick = openServerPicker
+                        )
                     } else {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(18.dp))
+                                .clip(RoundedCornerShape(16.dp))
                                 .background(CardDark)
-                                .border(1.3.dp, themeAccent.copy(alpha = 0.5f), RoundedCornerShape(18.dp))
+                                .border(1.2.dp, themeAccent.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
                                 .clickable(onClick = openServerPicker)
                                 .padding(18.dp),
                             contentAlignment = Alignment.Center
@@ -483,17 +336,17 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Bottom spacing for navigation bar
-                    Spacer(modifier = Modifier.height(100.dp))
+                    Spacer(Modifier.height(110.dp))
                 }
             }
         }
     }
 
+    // Server Picker - مطابق امضای اصلی
     if (showServerPicker) {
         DashboardServerPicker(
-            groupNodes = groupNodes,
-            groupTitle = groupTitle,
+            groupNodes,
+            groupTitle,
             onDismiss = { showServerPicker = false },
             onSelect = {
                 onSelectNode(it)
@@ -517,6 +370,9 @@ fun DashboardScreen(
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// HERO
+// ═══════════════════════════════════════════════════════════════
 @Composable
 private fun PremiumHeroSection(
     connectionState: ConnectionState,
@@ -531,58 +387,34 @@ private fun PremiumHeroSection(
 
     val stateColor = if (isConnected) ActiveGreen else GamingYellow
 
-    val outerYellowGlowPaint = remember {
+    val outerGlow = remember(isConnected) {
         androidx.compose.ui.graphics.Paint().apply {
-            color = GamingYellow.copy(alpha = 0.18f)
+            color = stateColor.copy(alpha = if (isConnected) 0.22f else 0.18f)
             asFrameworkPaint().maskFilter =
-                android.graphics.BlurMaskFilter(24f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+                android.graphics.BlurMaskFilter(28f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
-    val outerGreenGlowPaint = remember {
+    val innerGlow = remember(isConnected) {
         androidx.compose.ui.graphics.Paint().apply {
-            color = ActiveGreen.copy(alpha = 0.20f)
-            asFrameworkPaint().maskFilter =
-                android.graphics.BlurMaskFilter(26f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-        }
-    }
-    val innerYellowGlowPaint = remember {
-        androidx.compose.ui.graphics.Paint().apply {
-            color = GamingYellow.copy(alpha = 0.22f)
-            asFrameworkPaint().maskFilter =
-                android.graphics.BlurMaskFilter(14f, android.graphics.BlurMaskFilter.Blur.NORMAL)
-        }
-    }
-    val innerGreenGlowPaint = remember {
-        androidx.compose.ui.graphics.Paint().apply {
-            color = ActiveGreen.copy(alpha = 0.25f)
+            color = stateColor.copy(alpha = if (isConnected) 0.28f else 0.22f)
             asFrameworkPaint().maskFilter =
                 android.graphics.BlurMaskFilter(16f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
 
-    val onOrbitClick: () -> Unit = {
-        scope.launch {
-            orbScale.snapTo(0.88f)
-            orbScale.animateTo(1f, spring(dampingRatio = 0.55f, stiffness = 600f))
-        }
-        tick(HapticFeedbackType.LongPress)
-        onToggleConnection()
-    }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 6.dp),
+            .padding(top = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            // Status Badge
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(stateColor.copy(alpha = 0.12f))
-                    .border(1.dp, stateColor.copy(alpha = 0.65f), RoundedCornerShape(8.dp))
+                    .border(1.dp, stateColor.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
                     .padding(horizontal = 10.dp, vertical = 5.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -592,11 +424,11 @@ private fun PremiumHeroSection(
                         tint = stateColor,
                         modifier = Modifier.size(13.dp)
                     )
-                    Spacer(modifier = Modifier.width(5.dp))
+                    Spacer(Modifier.width(5.dp))
                     Text(
                         text = when {
                             isConnected -> if (isFa) "محافظت شده" else "Protected"
-                            isConnecting -> if (isFa) "در حال اتصال" else "Connecting"
+                            isConnecting -> if (isFa) "در حال اتصال..." else "Connecting..."
                             else -> if (isFa) "متصل نیست" else "Not Connected"
                         },
                         color = stateColor,
@@ -606,84 +438,78 @@ private fun PremiumHeroSection(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Main Status Text
-            val titleText = when {
-                isConnecting -> if (isFa) "در حال بهینه‌سازی" else "Optimizing"
-                else -> if (isFa) "حالت بازی" else "Gaming Mode"
-            }
-
-            val subtitleText = when {
-                isConnected -> if (isFa) "فعال •" else "Active •"
-                isConnecting -> if (isFa) "شبکه..." else "Network..."
-                else -> if (isFa) "آماده •" else "Ready •"
-            }
+            Spacer(Modifier.height(14.dp))
 
             Text(
                 text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = Color.White)) {
-                        append("$titleText\n")
+                    withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.Black)) {
+                        append(if (isFa) "حالت بازی\n" else "Gaming Mode\n")
                     }
-                    withStyle(SpanStyle(color = stateColor)) {
-                        append(subtitleText)
+                    withStyle(SpanStyle(color = stateColor, fontWeight = FontWeight.Black)) {
+                        append(
+                            when {
+                                isConnected -> if (isFa) "فعال" else "Active"
+                                isConnecting -> if (isFa) "در حال آماده‌سازی" else "Optimizing"
+                                else -> if (isFa) "آماده" else "Ready"
+                            }
+                        )
                     }
                 },
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Black,
-                lineHeight = 31.sp
+                fontSize = 26.sp,
+                lineHeight = 32.sp
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
 
             Text(
-                text = if (isFa) "پینگ فوق‌العاده پایین\nبرای بهترین تجربه" else "Ultra Low Ping\nfor the Best Experience",
+                text = if (isFa)
+                    "پینگ فوق‌العاده پایین\nبرای بهترین تجربه بازی"
+                else
+                    "Ultra Low Ping\nfor the Best Experience",
                 color = TextMuted,
                 fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                lineHeight = 17.sp
+                lineHeight = 17.sp,
+                fontWeight = FontWeight.Medium
             )
         }
 
-        // Power Button
         Box(
             modifier = Modifier
-                .size(142.dp)
+                .size(148.dp)
                 .graphicsLayer {
                     scaleX = orbScale.value
                     scaleY = orbScale.value
                 }
-                .clickable(onClick = onOrbitClick),
+                .clickable {
+                    scope.launch {
+                        orbScale.snapTo(0.86f)
+                        orbScale.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = 550f))
+                    }
+                    tick(HapticFeedbackType.LongPress)
+                    onToggleConnection()
+                },
             contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .size(130.dp)
+                    .size(136.dp)
                     .drawBehind {
                         drawIntoCanvas { canvas ->
-                            canvas.drawCircle(
-                                center,
-                                size.width / 2,
-                                if (isConnected) outerGreenGlowPaint else outerYellowGlowPaint
-                            )
+                            canvas.drawCircle(center, size.width / 2, outerGlow)
                         }
                     }
-                    .border(1.6.dp, stateColor.copy(alpha = 0.55f), CircleShape)
+                    .border(1.5.dp, stateColor.copy(alpha = 0.5f), CircleShape)
             )
 
             Box(
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(104.dp)
                     .clip(CircleShape)
                     .background(CardDark)
-                    .border(2.4.dp, stateColor.copy(alpha = 0.9f), CircleShape)
+                    .border(2.6.dp, stateColor.copy(alpha = 0.95f), CircleShape)
                     .drawBehind {
                         drawIntoCanvas { canvas ->
-                            canvas.drawCircle(
-                                center,
-                                size.width / 2,
-                                if (isConnected) innerGreenGlowPaint else innerYellowGlowPaint
-                            )
+                            canvas.drawCircle(center, size.width / 2, innerGlow)
                         }
                     },
                 contentAlignment = Alignment.Center
@@ -691,15 +517,15 @@ private fun PremiumHeroSection(
                 if (isConnecting) {
                     CircularProgressIndicator(
                         color = GamingYellow,
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.size(36.dp)
+                        strokeWidth = 3.2.dp,
+                        modifier = Modifier.size(38.dp)
                     )
                 } else {
                     Icon(
                         Icons.Default.PowerSettingsNew,
                         contentDescription = null,
                         tint = stateColor,
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(42.dp)
                     )
                 }
             }
@@ -707,14 +533,17 @@ private fun PremiumHeroSection(
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════════════
 @Composable
 private fun PremiumStatsBar(
     basePing: String?,
     speedValues: () -> DashboardSpeeds,
     isConnected: Boolean,
-    boostTrigger: Int = 0,
+    boostTrigger: Int,
     isFa: Boolean,
-    onRefreshPing: () -> Unit = {}
+    onRefreshPing: () -> Unit
 ) {
     var livePing by remember { mutableStateOf("--") }
     var liveJitter by remember { mutableStateOf("--") }
@@ -726,55 +555,49 @@ private fun PremiumStatsBar(
 
     LaunchedEffect(isConnected, basePing, boostTrigger) {
         if (isConnected) {
-            val initialSeed = basePing?.filter { it.isDigit() }?.toIntOrNull()?.coerceIn(28, 76)
+            val initial = basePing?.filter { it.isDigit() }?.toIntOrNull()?.coerceIn(28, 76)
                 ?: Random.nextInt(42, 68)
-            var currentPing = initialSeed
-            var targetPing = Random.nextInt(30, 75)
+            var current = initial
+            var target = Random.nextInt(30, 75)
 
             while (true) {
-                if (abs(currentPing - targetPing) <= 4) {
-                    targetPing = Random.nextInt(28, 79)
+                if (abs(current - target) <= 4) target = Random.nextInt(28, 79)
+
+                val dir = when {
+                    target > current -> Random.nextInt(2, 8)
+                    target < current -> -Random.nextInt(2, 8)
+                    else -> Random.nextInt(-3, 4)
                 }
+                val next = (current + dir + Random.nextInt(-2, 3)).coerceIn(28, 78)
+                val jitter = (abs(next - current) / 2 + Random.nextInt(1, 3)).coerceIn(1, 6)
 
-                val direction = when {
-                    targetPing > currentPing -> Random.nextInt(2, 9)
-                    targetPing < currentPing -> -Random.nextInt(2, 9)
-                    else -> Random.nextInt(-4, 5)
-                }
-                val microNoise = Random.nextInt(-3, 4)
-                val nextPing = (currentPing + direction + microNoise).coerceIn(28, 78)
-
-                val delta = abs(nextPing - currentPing)
-                val currentJitter = (delta / 2 + Random.nextInt(1, 3)).coerceIn(1, 6)
-
-                currentPing = nextPing
-                livePing = currentPing.toString()
-                liveJitter = currentJitter.toString()
+                current = next
+                livePing = current.toString()
+                liveJitter = jitter.toString()
                 liveLoss = "0"
 
                 pingStatus = when {
-                    currentPing <= 42 -> if (isFa) "فوق‌العاده" else "Ultra Low"
-                    currentPing <= 62 -> if (isFa) "عالی" else "Excellent"
-                    else -> if (isFa) "بهینه" else "Optimal"
+                    current <= 40 -> if (isFa) "فوق‌العاده" else "Ultra"
+                    current <= 58 -> if (isFa) "عالی" else "Excellent"
+                    else -> if (isFa) "خوب" else "Good"
                 }
-                jitterStatus = if (currentJitter <= 3) {
+                jitterStatus = if (jitter <= 3) {
                     if (isFa) "پایدار" else "Stable"
                 } else {
-                    if (isFa) "هماهنگ" else "Synced"
+                    if (isFa) "عادی" else "Normal"
                 }
 
-                val realBytes = speedValues().download.coerceAtLeast(0L)
-                if (realBytes >= 1024L * 8L) {
-                    val formatted = formatDashboardSpeed(realBytes)
-                    liveSpeed = formatted.first
-                    liveSpeedUnit = formatted.second
+                val bytes = speedValues().download.coerceAtLeast(0L)
+                if (bytes >= 8 * 1024) {
+                    val (v, u) = formatDashboardSpeed(bytes)
+                    liveSpeed = v
+                    liveSpeedUnit = u
                 } else {
-                    val kbTraffic = Random.nextInt(14, 96) / 10.0
-                    liveSpeed = String.format(Locale.US, "%.1f", kbTraffic)
+                    liveSpeed = String.format(Locale.US, "%.1f", Random.nextInt(12, 90) / 10.0)
                     liveSpeedUnit = "KB/s"
                 }
 
-                delay(Random.nextLong(950L, 1450L))
+                delay(Random.nextLong(900, 1400))
             }
         } else {
             livePing = "--"
@@ -787,31 +610,27 @@ private fun PremiumStatsBar(
         }
     }
 
-    val barShape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(16.dp)
+    val borderBrush = Brush.horizontalGradient(
+        if (isConnected)
+            listOf(ActiveGreen.copy(alpha = 0.7f), ActiveGreen.copy(alpha = 0.25f))
+        else
+            listOf(GamingYellow.copy(alpha = 0.6f), GamingAmber.copy(alpha = 0.25f))
+    )
 
     Column {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(barShape)
+                .clip(shape)
                 .background(CardDark)
-                .border(
-                    width = 1.2.dp,
-                    brush = Brush.horizontalGradient(
-                        if (isConnected) {
-                            listOf(ActiveGreen.copy(alpha = 0.7f), ActiveGreen.copy(alpha = 0.35f))
-                        } else {
-                            listOf(GamingYellow.copy(alpha = 0.6f), GamingAmber.copy(alpha = 0.35f))
-                        }
-                    ),
-                    shape = barShape
-                )
+                .border(1.2.dp, borderBrush, shape)
                 .clickable(enabled = isConnected, onClick = onRefreshPing)
-                .padding(vertical = 14.dp, horizontal = 10.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+                .padding(vertical = 15.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            PremiumStat(
+            StatItem(
                 icon = Icons.Default.WifiTethering,
                 title = "Ping",
                 value = livePing,
@@ -819,8 +638,8 @@ private fun PremiumStatsBar(
                 status = pingStatus,
                 isConnected = isConnected
             )
-            Box(Modifier.width(1.dp).height(36.dp).background(CardStroke))
-            PremiumStat(
+            VerticalDivider()
+            StatItem(
                 icon = Icons.Default.Timeline,
                 title = "Jitter",
                 value = liveJitter,
@@ -828,8 +647,8 @@ private fun PremiumStatsBar(
                 status = jitterStatus,
                 isConnected = isConnected
             )
-            Box(Modifier.width(1.dp).height(36.dp).background(CardStroke))
-            PremiumStat(
+            VerticalDivider()
+            StatItem(
                 icon = Icons.Default.Shield,
                 title = "Loss",
                 value = liveLoss,
@@ -837,10 +656,10 @@ private fun PremiumStatsBar(
                 status = if (isConnected) (if (isFa) "عالی" else "Perfect") else "",
                 isConnected = isConnected
             )
-            Box(Modifier.width(1.dp).height(36.dp).background(CardStroke))
-            PremiumStat(
+            VerticalDivider()
+            StatItem(
                 icon = Icons.Default.Download,
-                title = if (isFa) "دانلود" else "Download",
+                title = if (isFa) "دانلود" else "Down",
                 value = liveSpeed,
                 unit = liveSpeedUnit,
                 status = if (isConnected) (if (isFa) "سریع" else "Fast") else "",
@@ -848,12 +667,11 @@ private fun PremiumStatsBar(
             )
         }
 
-        // Hint when disconnected
         if (!isConnected) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(Modifier.height(8.dp))
             Text(
-                text = if (isFa) "برای مشاهده آمار واقعی متصل شوید" else "Connect to see live stats",
-                color = TextMuted.copy(alpha = 0.7f),
+                text = if (isFa) "برای دیدن آمار زنده متصل شوید" else "Connect to see live stats",
+                color = TextDim,
                 fontSize = 11.sp,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
@@ -863,77 +681,194 @@ private fun PremiumStatsBar(
 }
 
 @Composable
-private fun PremiumStat(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+private fun VerticalDivider() {
+    Box(
+        Modifier
+            .width(1.dp)
+            .height(38.dp)
+            .background(CardStroke)
+    )
+}
+
+@Composable
+private fun StatItem(
+    icon: ImageVector,
     title: String,
     value: String,
     unit: String,
     status: String,
     isConnected: Boolean
 ) {
-    val mainColor = if (isConnected) ActiveGreen else GamingYellow
+    val color = if (isConnected) ActiveGreen else GamingYellow
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(72.dp)
+        modifier = Modifier.width(74.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = mainColor.copy(alpha = 0.85f),
-                modifier = Modifier.size(12.dp)
-            )
-            Spacer(modifier = Modifier.width(3.dp))
-            Text(
-                title,
-                color = TextMuted,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Icon(icon, null, tint = color.copy(alpha = 0.8f), modifier = Modifier.size(12.dp))
+            Spacer(Modifier.width(3.dp))
+            Text(title, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         }
 
-        Spacer(modifier = Modifier.height(5.dp))
+        Spacer(Modifier.height(5.dp))
 
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                value,
-                color = mainColor,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Black
-            )
-            Spacer(modifier = Modifier.width(2.dp))
+            Text(value, color = color, fontSize = 19.sp, fontWeight = FontWeight.Black)
+            Spacer(Modifier.width(2.dp))
             Text(
                 unit,
-                color = mainColor.copy(alpha = 0.85f),
+                color = color.copy(alpha = 0.8f),
                 fontSize = 10.sp,
                 modifier = Modifier.padding(bottom = 2.dp)
             )
         }
 
         if (isConnected && status.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(Modifier.height(3.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     Icons.Default.CheckCircle,
-                    contentDescription = null,
+                    null,
                     tint = ActiveGreen.copy(alpha = 0.85f),
                     modifier = Modifier.size(10.dp)
                 )
-                Spacer(modifier = Modifier.width(2.dp))
-                Text(
-                    status,
-                    color = ActiveGreen.copy(alpha = 0.85f),
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Spacer(Modifier.width(2.dp))
+                Text(status, color = ActiveGreen.copy(alpha = 0.85f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         } else {
-            Spacer(modifier = Modifier.height(13.dp)) // keep height consistent
+            Spacer(Modifier.height(13.dp))
         }
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// SERVER CARD
+// ═══════════════════════════════════════════════════════════════
+@Composable
+private fun PremiumServerCard(
+    node: NodeUiModel,
+    isConnected: Boolean,
+    themeAccent: Color,
+    onClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(16.dp)
+    val borderBrush = Brush.horizontalGradient(
+        if (isConnected)
+            listOf(ActiveGreen.copy(alpha = 0.8f), ActiveGreen.copy(alpha = 0.3f))
+        else
+            listOf(GamingYellow.copy(alpha = 0.75f), GamingAmber.copy(alpha = 0.3f))
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(CardDark)
+            .border(1.4.dp, borderBrush, shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(Modifier.size(width = 42.dp, height = 28.dp)) {
+            val code = node.countryCode.trim().lowercase()
+            var flagBitmap by remember(code) { mutableStateOf(flagMemoryCache[code]) }
+            val emoji = remember(code) { CountryFlagHelper.getServerFlagEmoji(node.countryCode) }
+
+            LaunchedEffect(code) {
+                if (flagBitmap == null && code.isNotBlank()) {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val conn = (URL("https://flagcdn.com/w80/$code.png").openConnection() as HttpURLConnection).apply {
+                                connectTimeout = 3000
+                                readTimeout = 3000
+                            }
+                            if (conn.responseCode in 200..299) {
+                                BitmapFactory.decodeStream(conn.inputStream)?.let {
+                                    val bmp = it.asImageBitmap()
+                                    flagMemoryCache[code] = bmp
+                                    flagBitmap = bmp
+                                }
+                            }
+                            conn.disconnect()
+                        } catch (_: Exception) {
+                        }
+                    }
+                }
+            }
+
+            if (flagBitmap != null) {
+                Image(
+                    bitmap = flagBitmap!!,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(5.dp))
+                )
+            } else {
+                Text(emoji, fontSize = 22.sp, modifier = Modifier.align(Alignment.Center))
+            }
+        }
+
+        Spacer(Modifier.width(14.dp))
+
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = node.name,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                node.pingMs?.takeIf { it > 0 }?.let { ping ->
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "${ping}ms",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = when {
+                            ping < 50 -> ActiveGreen
+                            ping < 90 -> GamingYellow
+                            else -> Color(0xFFFF5252)
+                        }
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(5.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Shield,
+                    contentDescription = null,
+                    tint = themeAccent,
+                    modifier = Modifier.size(13.dp)
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = node.displayProtocol,
+                    fontSize = 12.sp,
+                    color = TextMuted,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = themeAccent,
+            modifier = Modifier.size(22.dp)
+        )
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAMES
+// ═══════════════════════════════════════════════════════════════
 @Composable
 fun GameBoostSection(
     modifier: Modifier = Modifier,
@@ -956,9 +891,7 @@ fun GameBoostSection(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 2.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1019,14 +952,14 @@ private fun GamePosterPremiumCard(
     var posterBitmap by remember(game.id) { mutableStateOf(posterMemoryCache[game.id]) }
     val accentColor = if (isConnected) ActiveGreen else GamingYellow
 
-    val yellowCardGlowPaint = remember {
+    val yellowGlow = remember {
         androidx.compose.ui.graphics.Paint().apply {
             color = GamingYellow.copy(alpha = 0.22f)
             asFrameworkPaint().maskFilter =
                 android.graphics.BlurMaskFilter(18f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
-    val greenCardGlowPaint = remember {
+    val greenGlow = remember {
         androidx.compose.ui.graphics.Paint().apply {
             color = ActiveGreen.copy(alpha = 0.22f)
             asFrameworkPaint().maskFilter =
@@ -1076,7 +1009,7 @@ private fun GamePosterPremiumCard(
                             canvas.drawRoundRect(
                                 0f, 0f, size.width, size.height,
                                 14.dp.toPx(), 14.dp.toPx(),
-                                if (isConnected) greenCardGlowPaint else yellowCardGlowPaint
+                                if (isConnected) greenGlow else yellowGlow
                             )
                         }
                     }
@@ -1096,7 +1029,6 @@ private fun GamePosterPremiumCard(
             )
         }
 
-        // Gradient overlay
         Box(
             Modifier
                 .fillMaxSize()
@@ -1114,7 +1046,6 @@ private fun GamePosterPremiumCard(
             Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)))
         }
 
-        // Check badge
         if (isSelected) {
             Box(
                 modifier = Modifier
@@ -1138,7 +1069,6 @@ private fun GamePosterPremiumCard(
             }
         }
 
-        // Title + Optimized badge
         Column(
             Modifier
                 .fillMaxSize()
@@ -1191,5 +1121,3 @@ private fun GamePosterPremiumCard(
         }
     }
 }
-
-// Keep the rest of your helper functions (formatDashboardSpeed, BoostGame, etc.) as they were
