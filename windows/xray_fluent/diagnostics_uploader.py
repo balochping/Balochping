@@ -6,19 +6,23 @@ client authentication: a secret distributed in every binary proves no identity.
 """
 from __future__ import annotations
 from collections import OrderedDict
+import errno
 import hashlib
 import hmac as _hmac
 import json
 import logging
 import os
 import queue
+import socket
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import weakref
 from pathlib import Path
 from .constants import APP_VERSION as _APP_VERSION, DIAGNOSTICS_SECRET as _SECRET
+from .data_paths import get_install_id
 from .secret_scrubber import prepare_record, scrub_text
 
 _USER_AGENT = f"Lumen-Diagnostics/{_APP_VERSION}"
@@ -85,11 +89,17 @@ def _sanitize_event(value: object) -> dict:
     return event or {"msg": "[UNFORMATTABLE LOG EVENT]"}
 
 def _safe_payload(payload: object) -> dict:
-    from .diagnostics import _safe_version
+    from .diagnostics import _safe_install_id, _safe_version
     if not isinstance(payload, dict) or payload.get("kind") not in ("error-batch", "heartbeat"):
         raise ValueError("Unknown diagnostics payload")
     safe = {"kind": payload["kind"], "app_version": _safe_version(payload.get("app_version"))}
+    install_id = _safe_install_id(payload.get("install_id"))
+    if install_id is not None:
+        safe["install_id"] = install_id
+        safe["platform"] = "windows"
     if safe["kind"] == "heartbeat":
+        if install_id is None:
+            raise ValueError("Invalid heartbeat install_id")
         ts = payload.get("ts")
         safe["ts"] = ts if type(ts) is int and ts >= 0 else 0
     else:
@@ -166,7 +176,7 @@ class HttpDiagnosticsHandler(logging.Handler):
         if not self._active():
             return False
         body = json.dumps(_safe_payload({"kind": "error-batch", "app_version": self._app_version,
-                                        "events": batch}), ensure_ascii=False).encode("utf-8")
+                                        "install_id": get_install_id(), "events": batch}), ensure_ascii=False).encode("utf-8")
         return _send(self._url, body, "application/json", _EVENT_TIMEOUT,
                      epoch=self._epoch, cancel_event=self._stop)
     def _discard_pending(self) -> None:
@@ -202,6 +212,28 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
 
+
+def _proxy_fallback_allowed(error: urllib.error.URLError) -> bool:
+    # Retry connection establishment failures only. A read failure or HTTP
+    # response may follow an accepted POST and must not duplicate the upload.
+    reason = error.reason
+    return isinstance(reason, (ConnectionRefusedError, TimeoutError, socket.gaierror)) or (
+        isinstance(reason, OSError) and reason.errno in (errno.ENETUNREACH, errno.EHOSTUNREACH)
+    )
+
+
+def _fallback_proxies() -> dict[str, str]:
+    configured = urllib.request.getproxies()
+    proxy = configured.get("https") or configured.get("all")
+    if not isinstance(proxy, str):
+        return {}
+    # urllib also accepts a bare host:port in system proxy settings.
+    proxy = proxy if "://" in proxy else "http://" + proxy
+    parsed = urllib.parse.urlsplit(proxy)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.fragment:
+        return {}
+    return {"https": proxy}
+
 def _send(url: str, body: bytes, content_type: str, timeout: int, headers: dict | None = None, *,
           epoch: int | None = None, cancel_event: threading.Event | None = None) -> bool:
     epoch = get_upload_epoch() if epoch is None else epoch
@@ -229,13 +261,28 @@ def _send(url: str, body: bytes, content_type: str, timeout: int, headers: dict 
             all_headers["X-Filename"] = "diagnostics.zip"
         all_headers.update(_sign_headers(body))
         request = urllib.request.Request(url, data=body, method="POST", headers=all_headers)
-        # Explicit proxy policy: no implicit registry discovery or redirects.
+        # Prefer direct transport; consult system settings only after a
+        # connection failure. Redirects remain disabled on both routes.
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
         if cancelled():
             return False
         # Dispatch boundary. Never hold the consent lock across network I/O.
-        with opener.open(request, timeout=timeout):
-            pass
+        try:
+            with opener.open(request, timeout=timeout):
+                pass
+        except urllib.error.HTTPError:
+            return False
+        except urllib.error.URLError as error:
+            if loopback or cancelled() or not _proxy_fallback_allowed(error):
+                return False
+            proxies = _fallback_proxies()
+            if not proxies or cancelled():
+                return False
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler(proxies), _NoRedirect())
+            if cancelled():
+                return False
+            with opener.open(request, timeout=timeout):
+                pass
         return True
     except Exception:
         return False
@@ -296,7 +343,7 @@ def wait_for_bundle_uploads(timeout: float = _BUNDLE_TIMEOUT + 1) -> None:
             thread.join(remaining)
 
 class HeartbeatSender:
-    """Coarse consent-scoped activity ping, without install ID or fingerprint."""
+    """Consent-scoped activity ping with a persistent random installation ID."""
     def __init__(self, url: str, *, app_version: str = "", interval: float = _HEARTBEAT_INTERVAL) -> None:
         self._url, self._app_version = url, app_version
         self._epoch = get_upload_epoch()
@@ -314,7 +361,7 @@ class HeartbeatSender:
             return
         try:
             body = json.dumps(_safe_payload({"kind": "heartbeat", "app_version": self._app_version,
-                                            "ts": int(time.time())}), ensure_ascii=False).encode("utf-8")
+                                            "install_id": get_install_id(), "ts": int(time.time())}), ensure_ascii=False).encode("utf-8")
             _send(self._url, body, "application/json", _EVENT_TIMEOUT,
                   epoch=self._epoch, cancel_event=self._stop)
         except Exception:

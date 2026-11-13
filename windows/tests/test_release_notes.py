@@ -11,7 +11,7 @@ LOCALES = ROOT / "xray_fluent" / "locales"
 
 
 def test_current_release_has_curated_notes() -> None:
-    assert APP_VERSION == "2.1.3"
+    assert APP_VERSION == "2.1.4"
     assert len(release_notes.RELEASE_NOTES[APP_VERSION]) == 4
     assert APP_VERSION in release_notes.RELEASE_NOTES
     groups = release_notes.notes_between(release_notes.LEGACY_PROFILE_VERSION, APP_VERSION)
