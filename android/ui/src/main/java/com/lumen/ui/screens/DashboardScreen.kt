@@ -88,14 +88,14 @@ import kotlin.random.Random
 private val posterMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 private val flagMemoryCache = ConcurrentHashMap<String, ImageBitmap>()
 
-// === Refined & Balanced Green / Purple Gaming Palette ===
-private val NeonGreen = Color(0xFF10E870)
-private val CyberPurple = Color(0xFF9D4EDD)
-private val CyberPurpleDark = Color(0xFF48147A)
-private val BgDark = Color(0xFF09090E)
-private val CardDark = Color(0xFF14141C)
-private val CardStroke = Color(0xFF232332)
-private val TextMuted = Color(0xFF8B93A5)
+// === Black Primary + Yellow (Off / Details) + Green (Connected) ===
+private val ActiveGreen = Color(0xFF10E870)
+private val GamingYellow = Color(0xFFE5B80B)
+private val GamingAmber = Color(0xFFB37D14)
+private val BgDark = Color(0xFF060608)
+private val CardDark = Color(0xFF111116)
+private val CardStroke = Color(0xFF22222A)
+private val TextMuted = Color(0xFF8E929F)
 
 @Composable
 fun DashboardScreen(
@@ -163,11 +163,18 @@ fun DashboardScreen(
     val scrollState = rememberScrollState()
     var gameBoostTrigger by remember { mutableIntStateOf(0) }
 
+    LaunchedEffect(isConnected, activeNode?.id) {
+        if (isConnected && connectedPing == null && !isCheckingPing) {
+            delay(1200L)
+            onCheckPing()
+        }
+    }
+
     val bgBrush = remember {
         Brush.radialGradient(
-            colors = listOf(CyberPurpleDark.copy(alpha = 0.16f), BgDark),
+            colors = listOf(Color(0xFF14141A), BgDark),
             center = Offset(800f, 0f),
-            radius = 1800f
+            radius = 1600f
         )
     }
 
@@ -198,7 +205,12 @@ fun DashboardScreen(
                         .verticalScroll(scrollState)
                         .padding(horizontal = 16.dp, vertical = 6.dp)
                 ) {
-                    PremiumHeroSection(connectionState, onToggleConnection, tick)
+                    PremiumHeroSection(
+                        connectionState = connectionState,
+                        isFa = isFa,
+                        onToggleConnection = onToggleConnection,
+                        tick = tick
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
 
                     if (speedStatsEnabled) {
@@ -207,13 +219,21 @@ fun DashboardScreen(
                             basePing = basePingValue,
                             speedValues = speedValues,
                             isConnected = isConnected,
-                            boostTrigger = gameBoostTrigger
+                            boostTrigger = gameBoostTrigger,
+                            onRefreshPing = {
+                                if (isConnected && !isCheckingPing) {
+                                    tick(HapticFeedbackType.LongPress)
+                                    gameBoostTrigger++
+                                    onCheckPing()
+                                }
+                            }
                         )
                         Spacer(modifier = Modifier.height(28.dp))
                     }
 
                     GameBoostSection(
                         selectedGameId = "pubg",
+                        onOpenProfiles = openServerPicker,
                         onGameSelect = {
                             tick(HapticFeedbackType.LongPress)
                             gameBoostTrigger++
@@ -231,7 +251,7 @@ fun DashboardScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Layers, contentDescription = null, tint = CyberPurple, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Layers, contentDescription = null, tint = GamingYellow, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(text = "Server", fontSize = 15.sp, fontWeight = FontWeight.Black, color = Color.White)
                         }
@@ -239,7 +259,7 @@ fun DashboardScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(CardDark)
-                                .border(1.dp, NeonGreen.copy(alpha = 0.38f), RoundedCornerShape(16.dp))
+                                .border(1.dp, GamingYellow.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
                                 .clickable {
                                     tick(HapticFeedbackType.LongPress)
                                     val bestNode = groupNodes.filter { (it.pingMs ?: 0) > 0 }.minByOrNull { it.pingMs ?: Int.MAX_VALUE }
@@ -253,9 +273,9 @@ fun DashboardScreen(
                                 .padding(horizontal = 12.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Bolt, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Default.Bolt, contentDescription = null, tint = GamingYellow, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(text = "Auto Select", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeonGreen)
+                            Text(text = "Auto Select", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GamingYellow)
                         }
                     }
                     Spacer(modifier = Modifier.height(12.dp))
@@ -269,12 +289,12 @@ fun DashboardScreen(
                                 .clip(serverShape)
                                 .background(CardDark)
                                 .border(
-                                    width = if (isConnected) 1.5.dp else 1.dp,
+                                    width = 1.5.dp,
                                     brush = Brush.horizontalGradient(
                                         if (isConnected) {
-                                            listOf(NeonGreen.copy(alpha = 0.65f), CyberPurple.copy(alpha = 0.55f))
+                                            listOf(ActiveGreen.copy(alpha = 0.8f), ActiveGreen.copy(alpha = 0.45f))
                                         } else {
-                                            listOf(CardStroke, CardStroke)
+                                            listOf(GamingYellow.copy(alpha = 0.75f), GamingAmber.copy(alpha = 0.45f))
                                         }
                                     ),
                                     shape = serverShape
@@ -349,7 +369,12 @@ fun DashboardScreen(
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Shield, contentDescription = null, tint = TextMuted, modifier = Modifier.size(12.dp))
+                                    Icon(
+                                        Icons.Default.Shield,
+                                        contentDescription = null,
+                                        tint = if (isConnected) ActiveGreen else GamingYellow,
+                                        modifier = Modifier.size(12.dp)
+                                    )
                                     Spacer(Modifier.width(4.dp))
                                     Text(text = activeNode.displayProtocol, fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Medium)
                                 }
@@ -357,7 +382,7 @@ fun DashboardScreen(
                             Icon(
                                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                                 contentDescription = strings.changeServer,
-                                tint = if (isConnected) NeonGreen else Color.White.copy(alpha = 0.85f),
+                                tint = if (isConnected) ActiveGreen else GamingYellow,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -367,7 +392,7 @@ fun DashboardScreen(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(20.dp))
                                 .background(CardDark)
-                                .border(1.dp, CardStroke, RoundedCornerShape(20.dp))
+                                .border(1.2.dp, GamingYellow.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
                                 .clickable(onClick = openServerPicker)
                                 .padding(16.dp),
                             contentAlignment = Alignment.Center
@@ -375,7 +400,7 @@ fun DashboardScreen(
                             Text(
                                 text = strings.noServerSelected,
                                 fontSize = 14.sp,
-                                color = TextMuted
+                                color = GamingYellow
                             )
                         }
                     }
@@ -411,6 +436,7 @@ fun DashboardScreen(
 @Composable
 private fun PremiumHeroSection(
     connectionState: ConnectionState,
+    isFa: Boolean,
     onToggleConnection: () -> Unit,
     tick: (HapticFeedbackType) -> Unit
 ) {
@@ -419,17 +445,31 @@ private fun PremiumHeroSection(
     val scope = rememberCoroutineScope()
     val orbScale = remember { Animatable(1f) }
 
-    // هاله‌های نوری ملایم و کنترل‌شده (بدون درخشش بیش از حد)
-    val purpleGlowPaint = remember {
+    // رنگ وضعیت فعلی: سبز هنگام اتصال، زرد هنگام خاموش بودن
+    val stateColor = if (isConnected) ActiveGreen else GamingYellow
+
+    val outerYellowGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = CyberPurple.copy(alpha = 0.20f)
+            color = GamingYellow.copy(alpha = 0.18f)
+            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(24f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+        }
+    }
+    val outerGreenGlowPaint = remember {
+        androidx.compose.ui.graphics.Paint().apply {
+            color = ActiveGreen.copy(alpha = 0.20f)
             asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(26f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
-    val greenGlowPaint = remember {
+    val innerYellowGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = NeonGreen.copy(alpha = 0.22f)
+            color = GamingYellow.copy(alpha = 0.22f)
             asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(14f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+        }
+    }
+    val innerGreenGlowPaint = remember {
+        androidx.compose.ui.graphics.Paint().apply {
+            color = ActiveGreen.copy(alpha = 0.25f)
+            asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(16f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
 
@@ -448,23 +488,29 @@ private fun PremiumHeroSection(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
+            // بج وضعیت: زرد در حالت خاموش، سبز در حالت متصل
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isConnected) NeonGreen.copy(alpha = 0.10f) else TextMuted.copy(alpha = 0.12f))
+                    .background(stateColor.copy(alpha = 0.12f))
                     .border(
                         1.dp,
-                        if (isConnected) NeonGreen.copy(alpha = 0.65f) else TextMuted.copy(alpha = 0.5f),
+                        stateColor.copy(alpha = 0.7f),
                         RoundedCornerShape(8.dp)
                     )
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Shield, contentDescription = null, tint = if (isConnected) NeonGreen else TextMuted, modifier = Modifier.size(14.dp))
+                    Icon(
+                        Icons.Default.Shield,
+                        contentDescription = null,
+                        tint = stateColor,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         if (isConnected) "Protected" else "Not Connected",
-                        color = if (isConnected) NeonGreen else TextMuted,
+                        color = stateColor,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -472,12 +518,15 @@ private fun PremiumHeroSection(
             }
             Spacer(modifier = Modifier.height(14.dp))
 
+            val activeLabel = if (isFa) "Active •" else "<< Active"
+            val readyLabel = if (isFa) "Ready •" else "<< Ready"
+
             val statusAnnotated = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = Color.White)) {
                     append(if (isConnecting) "Optimizing\n" else "Gaming Mode\n")
                 }
-                withStyle(style = SpanStyle(color = if (isConnected) NeonGreen else TextMuted)) {
-                    append(if (isConnected) "<< Active" else if (isConnecting) "Network..." else "<< Ready")
+                withStyle(style = SpanStyle(color = stateColor)) {
+                    append(if (isConnected) activeLabel else if (isConnecting) "Network..." else readyLabel)
                 }
             }
 
@@ -506,45 +555,55 @@ private fun PremiumHeroSection(
         ) {
             val shape = CircleShape
 
-            if (isConnected || isConnecting) {
-                Box(
-                    modifier = Modifier
-                        .size(138.dp)
-                        .drawBehind {
-                            drawIntoCanvas { canvas ->
-                                canvas.drawCircle(center, size.width / 2, purpleGlowPaint)
-                            }
+            // حلقه بیرونی: زرد وقتی خاموش است، سبز وقتی متصل می‌شود
+            Box(
+                modifier = Modifier
+                    .size(138.dp)
+                    .drawBehind {
+                        drawIntoCanvas { canvas ->
+                            canvas.drawCircle(
+                                center,
+                                size.width / 2,
+                                if (isConnected) outerGreenGlowPaint else outerYellowGlowPaint
+                            )
                         }
-                        .border(2.dp, CyberPurple.copy(alpha = 0.65f), shape)
-                )
-            }
+                    }
+                    .border(
+                        1.8.dp,
+                        stateColor.copy(alpha = 0.6f),
+                        shape
+                    )
+            )
 
+            // دکمه اصلی پاور: زرد در حالت خاموش، سبز در حالت متصل
             Box(
                 modifier = Modifier
                     .size(108.dp)
                     .clip(shape)
-                    .background(BgDark)
+                    .background(CardDark)
                     .border(
-                        width = if (isConnected) 2.5.dp else 2.dp,
-                        color = if (isConnected) NeonGreen.copy(alpha = 0.85f) else CardStroke,
+                        width = 2.5.dp,
+                        color = stateColor.copy(alpha = 0.9f),
                         shape = shape
                     )
                     .drawBehind {
-                        if (isConnected) {
-                            drawIntoCanvas { canvas ->
-                                canvas.drawCircle(center, size.width / 2, greenGlowPaint)
-                            }
+                        drawIntoCanvas { canvas ->
+                            canvas.drawCircle(
+                                center,
+                                size.width / 2,
+                                if (isConnected) innerGreenGlowPaint else innerYellowGlowPaint
+                            )
                         }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 if (isConnecting) {
-                    CircularProgressIndicator(color = NeonGreen, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
+                    CircularProgressIndicator(color = GamingYellow, strokeWidth = 3.dp, modifier = Modifier.size(38.dp))
                 } else {
                     Icon(
                         Icons.Default.PowerSettingsNew,
                         contentDescription = null,
-                        tint = if (isConnected) NeonGreen else Color.White.copy(alpha = 0.9f),
+                        tint = stateColor,
                         modifier = Modifier.size(40.dp)
                     )
                 }
@@ -558,7 +617,8 @@ private fun PremiumStatsBar(
     basePing: String?,
     speedValues: () -> DashboardSpeeds,
     isConnected: Boolean,
-    boostTrigger: Int = 0
+    boostTrigger: Int = 0,
+    onRefreshPing: () -> Unit = {}
 ) {
     var livePing by remember { mutableStateOf("--") }
     var liveJitter by remember { mutableStateOf("--") }
@@ -636,13 +696,14 @@ private fun PremiumStatsBar(
                 width = 1.2.dp,
                 brush = Brush.horizontalGradient(
                     if (isConnected) {
-                        listOf(NeonGreen.copy(alpha = 0.6f), CyberPurple.copy(alpha = 0.5f))
+                        listOf(ActiveGreen.copy(alpha = 0.7f), ActiveGreen.copy(alpha = 0.4f))
                     } else {
-                        listOf(CardStroke, CardStroke)
+                        listOf(GamingYellow.copy(alpha = 0.65f), GamingAmber.copy(alpha = 0.4f))
                     }
                 ),
                 shape = barShape
             )
+            .clickable(enabled = isConnected, onClick = onRefreshPing)
             .padding(vertical = 16.dp, horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
@@ -666,11 +727,12 @@ private fun PremiumStat(
     status: String,
     isConnected: Boolean
 ) {
-    val mainColor = if (isConnected) NeonGreen else Color.White
+    // زرد در حالت خاموش، سبز در حالت متصل
+    val mainColor = if (isConnected) ActiveGreen else GamingYellow
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, contentDescription = null, tint = TextMuted, modifier = Modifier.size(12.dp))
+            Icon(icon, contentDescription = null, tint = mainColor.copy(alpha = 0.85f), modifier = Modifier.size(12.dp))
             Spacer(modifier = Modifier.width(4.dp))
             Text(title, color = TextMuted, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         }
@@ -683,9 +745,9 @@ private fun PremiumStat(
         if (isConnected) {
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = NeonGreen.copy(alpha = 0.85f), modifier = Modifier.size(10.dp))
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = ActiveGreen.copy(alpha = 0.85f), modifier = Modifier.size(10.dp))
                 Spacer(modifier = Modifier.width(2.dp))
-                Text(status, color = NeonGreen.copy(alpha = 0.85f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Text(status, color = ActiveGreen.copy(alpha = 0.85f), fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -714,6 +776,7 @@ data class BoostGame(val id: String, val name: String, val posterUrl: String, va
 fun GameBoostSection(
     modifier: Modifier = Modifier,
     selectedGameId: String = "pubg",
+    onOpenProfiles: () -> Unit = {},
     onGameSelect: (String) -> Unit = {}
 ) {
     val games = remember {
@@ -733,11 +796,20 @@ fun GameBoostSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.VideogameAsset, contentDescription = null, tint = NeonGreen, modifier = Modifier.size(22.dp))
+                Icon(Icons.Default.VideogameAsset, contentDescription = null, tint = GamingYellow, modifier = Modifier.size(22.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Select Your Game", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
-            Text("Game Profiles >", color = CyberPurple, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = "Game Profiles >",
+                color = GamingYellow,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onOpenProfiles)
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            )
         }
         Spacer(Modifier.height(16.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -759,10 +831,9 @@ fun GameBoostSection(
 @Composable
 private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick: () -> Unit) {
     var posterBitmap by remember(game.id) { mutableStateOf(posterMemoryCache[game.id]) }
-    // درخشش ملایم و محدود فقط برای کارت انتخاب‌شده
     val cardGlowPaint = remember {
         androidx.compose.ui.graphics.Paint().apply {
-            color = NeonGreen.copy(alpha = 0.22f)
+            color = GamingYellow.copy(alpha = 0.24f)
             asFrameworkPaint().maskFilter = android.graphics.BlurMaskFilter(20f, android.graphics.BlurMaskFilter.Blur.NORMAL)
         }
     }
@@ -796,8 +867,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
     }
 
     val posterShape = RoundedCornerShape(16.dp)
-    // حاشیه سبز فقط برای بازی انتخاب‌شده روشن می‌شود
-    val borderColor = if (isSelected) NeonGreen.copy(alpha = 0.85f) else CardStroke.copy(alpha = 0.7f)
+    val borderColor = if (isSelected) GamingYellow.copy(alpha = 0.9f) else CardStroke.copy(alpha = 0.7f)
 
     Box(
         modifier = Modifier
@@ -829,16 +899,16 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
         Box(
             Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    0.0f to CyberPurple.copy(alpha = 0.06f),
+                    0.0f to Color.Transparent,
                     0.45f to Color.Transparent,
-                    0.75f to Color.Black.copy(alpha = 0.85f),
+                    0.75f to Color.Black.copy(alpha = 0.88f),
                     1.0f to Color.Black.copy(alpha = 0.98f)
                 )
             )
         )
 
         if (!isSelected) {
-            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.42f)))
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)))
         }
 
         if (isSelected) {
@@ -847,7 +917,7 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                 contentAlignment = Alignment.TopEnd
             ) {
                 Box(
-                    modifier = Modifier.size(22.dp).background(NeonGreen.copy(alpha = 0.9f), CircleShape),
+                    modifier = Modifier.size(22.dp).background(GamingYellow, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -879,10 +949,10 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isSelected) NeonGreen.copy(alpha = 0.14f) else Color.Black.copy(alpha = 0.6f))
+                    .background(if (isSelected) GamingYellow.copy(alpha = 0.16f) else Color.Black.copy(alpha = 0.65f))
                     .border(
                         1.dp,
-                        if (isSelected) NeonGreen.copy(alpha = 0.65f) else TextMuted.copy(alpha = 0.25f),
+                        if (isSelected) GamingYellow.copy(alpha = 0.75f) else TextMuted.copy(alpha = 0.25f),
                         RoundedCornerShape(12.dp)
                     )
                     .padding(horizontal = 8.dp, vertical = 4.dp),
@@ -891,13 +961,13 @@ private fun GamePosterPremiumCard(game: BoostGame, isSelected: Boolean, onClick:
                 Icon(
                     Icons.Default.Bolt,
                     contentDescription = null,
-                    tint = if (isSelected) NeonGreen else TextMuted,
+                    tint = if (isSelected) GamingYellow else TextMuted,
                     modifier = Modifier.size(13.dp)
                 )
                 Spacer(Modifier.width(2.dp))
                 Text(
                     text = "Optimized",
-                    color = if (isSelected) NeonGreen else TextMuted,
+                    color = if (isSelected) GamingYellow else TextMuted,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold
                 )
